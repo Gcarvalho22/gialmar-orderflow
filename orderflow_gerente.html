@@ -548,29 +548,33 @@ function loadProdutosLocais() {
 async function syncAll() {
   showSyncStatus('A sincronizar...');
   try {
-    await Promise.all([syncEncomendas(), syncClientes(), syncNotificacoes()]);
+    await syncEncomendas();
+    await syncClientes();
+    await syncNotificacoes();
     lastSync = new Date();
-    showSyncStatus('Sincronizado ' + formatTime(lastSync));
+    showSyncStatus('Atualizado ' + formatTime(lastSync));
     renderCurrentPage();
     renderNotifBadge();
   } catch(err) {
-    showSyncStatus('Erro de ligacao', true);
+    showSyncStatus('Erro: ' + err.message, true);
     console.error('Sync error:', err);
   }
 }
 
 async function syncEncomendas() {
-  const res = await apiGet('getEncomendas');
-  if (res && !res.error) DB.encomendas = res;
+  var res = await apiGet('getEncomendas');
+  if (res && !res.error) { DB.encomendas = res; }
+  else if (res && res.error) { throw new Error('Encomendas: ' + res.error); }
 }
 async function syncClientes() {
-  const res = await apiGet('getClientes');
-  if (res && !res.error) DB.clientes = res;
+  var res = await apiGet('getClientes');
+  if (res && !res.error) { DB.clientes = res; }
+  else if (res && res.error) { throw new Error('Clientes: ' + res.error); }
 }
 async function syncNotificacoes() {
-  const dest = UTILIZADOR.isGerente ? 'gerente' : UTILIZADOR.nome;
-  const res = await apiGet('getNotificacoes', { destinatario: dest });
-  if (res && !res.error) DB.notificacoes = res;
+  var dest = UTILIZADOR.isGerente ? 'gerente' : UTILIZADOR.nome;
+  var res = await apiGet('getNotificacoes', { destinatario: dest });
+  if (res && !res.error) { DB.notificacoes = res; }
 }
 
 // ===== API HELPERS (JSONP para ficheiros locais) =====
@@ -612,7 +616,7 @@ function showSyncStatus(msg, isError) {
   var el = document.getElementById('syncStatus');
   if (!el) return;
   el.textContent = msg;
-  el.style.color = isError ? 'var(--danger)' : 'var(--text-muted)';
+  el.style.color = isError ? '#c47a1e' : '#8aa5ad';
 }
 
 function renderCurrentPage() {
@@ -1112,7 +1116,33 @@ function timeAgo(iso){
   var d=(Date.now()-new Date(iso))/1000;
   if(d<60)return 'agora mesmo';if(d<3600)return 'ha '+Math.floor(d/60)+' min';
   if(d<86400)return 'ha '+Math.floor(d/3600)+' h';return 'ha '+Math.floor(d/86400)+' dias';
-}</script>
+}
+
+(function(){
+  var el = document.getElementById('syncStatus');
+  if(el) el.textContent = 'A testar ligacao...';
+  var cbName = '_diag_' + Date.now();
+  var script = document.createElement('script');
+  var timeout = setTimeout(function(){
+    if(el) el.textContent = 'Timeout - verifica Apps Script';
+    console.error('DIAG: Timeout');
+  }, 12000);
+  window[cbName] = function(data){
+    clearTimeout(timeout);
+    console.log('DIAG OK:', data);
+    if(el) el.textContent = 'Ligacao OK - a carregar...';
+    if(typeof syncAll === 'function') syncAll();
+  };
+  script.onerror = function(){
+    clearTimeout(timeout);
+    if(el) el.textContent = 'Erro de ligacao';
+    console.error('DIAG: script.onerror');
+  };
+  script.src = APPS_SCRIPT_URL + '?action=ping&callback=' + cbName + '&t=' + Date.now();
+  document.head.appendChild(script);
+  console.log('DIAG: a testar', script.src);
+})();
+</script>
 <script>
 function initGerente(){
   var fc=document.getElementById('filterClientes');if(fc)fc.addEventListener('input',function(){clientesPage=1;renderClientes();});
@@ -1122,11 +1152,6 @@ function initGerente(){
   var fc2=document.getElementById('filterCategoria');if(fc2)fc2.addEventListener('change',function(){produtosPage=1;renderProdutos();});
   var fd=document.getElementById('filterDisponivel');if(fd)fd.addEventListener('change',function(){produtosPage=1;renderProdutos();});
   var bnp=document.getElementById('btnNovoProduto');if(bnp)bnp.addEventListener('click',function(){openModal('modalProduto');});
-  var gs=document.getElementById('globalSearch');if(gs)gs.addEventListener('input',function(){
-    var q=this.value.toLowerCase().trim();if(!q)return;
-    if(DB.clientes.some(function(c){return c.nome.toLowerCase().indexOf(q)>=0;})){navigateTo('clientes');var el=document.getElementById('filterClientes');if(el)el.value=q;clientesPage=1;renderClientes();}
-    else if(DB.produtos.some(function(p){return p.descricao.toLowerCase().indexOf(q)>=0;})){navigateTo('produtos');var el=document.getElementById('filterProdutos');if(el)el.value=q;produtosPage=1;renderProdutos();}
-  });
   var ta=document.getElementById('topbarAvatar');if(ta)ta.addEventListener('click',function(e){e.stopPropagation();var pd=document.getElementById('profileDropdown');if(pd)pd.classList.toggle('open');});
   var bsp=document.getElementById('btnSaveProfile');if(bsp)bsp.addEventListener('click',function(){
     var n=(document.getElementById('settingNome')||{}).value||'Gerente';
