@@ -327,7 +327,7 @@ const CLIENTES_INICIAIS = [{"id": 1, "nome": "JORGE DA SILVA GERALDO"}, {"id": 2
 const UTILIZADOR={nome:"Joao Tavares",role:"Comercial",isGerente:false};
 // ===== GIALMAR ORDERFLOW — COM GOOGLE SHEETS =====
 // CONFIGURAÇÃO — substitui pelo URL do teu Apps Script Web App
-const APPS_SCRIPT_URL = 'COLE_AQUI_O_URL_DO_APPS_SCRIPT';
+// APPS_SCRIPT_URL definido externamente
 
 // ===== CONFIG DO UTILIZADOR (definido em cada ficheiro) =====
 // const UTILIZADOR = { nome: 'Goncalo C.', role: 'Comercial', isGerente: false };
@@ -382,33 +382,29 @@ function loadProdutosLocais() {
 async function syncAll() {
   showSyncStatus('A sincronizar...');
   try {
-    await syncEncomendas();
-    await syncClientes();
-    await syncNotificacoes();
+    await Promise.all([syncEncomendas(), syncClientes(), syncNotificacoes()]);
     lastSync = new Date();
-    showSyncStatus('Atualizado ' + formatTime(lastSync));
+    showSyncStatus('Sincronizado ' + formatTime(lastSync));
     renderCurrentPage();
     renderNotifBadge();
   } catch(err) {
-    showSyncStatus('Erro: ' + err.message, true);
+    showSyncStatus('Erro de ligacao', true);
     console.error('Sync error:', err);
   }
 }
 
 async function syncEncomendas() {
-  var res = await apiGet('getEncomendas');
-  if (res && !res.error) { DB.encomendas = res; }
-  else if (res && res.error) { throw new Error('Encomendas: ' + res.error); }
+  const res = await apiGet('getEncomendas');
+  if (res && !res.error) DB.encomendas = res;
 }
 async function syncClientes() {
-  var res = await apiGet('getClientes');
-  if (res && !res.error) { DB.clientes = res; }
-  else if (res && res.error) { throw new Error('Clientes: ' + res.error); }
+  const res = await apiGet('getClientes');
+  if (res && !res.error) DB.clientes = res;
 }
 async function syncNotificacoes() {
-  var dest = UTILIZADOR.isGerente ? 'gerente' : UTILIZADOR.nome;
-  var res = await apiGet('getNotificacoes', { destinatario: dest });
-  if (res && !res.error) { DB.notificacoes = res; }
+  const dest = UTILIZADOR.isGerente ? 'gerente' : UTILIZADOR.nome;
+  const res = await apiGet('getNotificacoes', { destinatario: dest });
+  if (res && !res.error) DB.notificacoes = res;
 }
 
 // ===== API HELPERS (JSONP para ficheiros locais) =====
@@ -450,7 +446,7 @@ function showSyncStatus(msg, isError) {
   var el = document.getElementById('syncStatus');
   if (!el) return;
   el.textContent = msg;
-  el.style.color = isError ? '#c47a1e' : '#8aa5ad';
+  el.style.color = isError ? 'var(--danger)' : 'var(--text-muted)';
 }
 
 function renderCurrentPage() {
@@ -959,22 +955,18 @@ function timeAgo(iso){
   var script = document.createElement('script');
   var timeout = setTimeout(function(){
     if(el) el.textContent = 'Timeout - verifica Apps Script';
-    console.error('DIAG: Timeout');
   }, 12000);
   window[cbName] = function(data){
     clearTimeout(timeout);
-    console.log('DIAG OK:', data);
     if(el) el.textContent = 'Ligacao OK - a carregar...';
     if(typeof syncAll === 'function') syncAll();
   };
   script.onerror = function(){
     clearTimeout(timeout);
     if(el) el.textContent = 'Erro de ligacao';
-    console.error('DIAG: script.onerror');
   };
   script.src = APPS_SCRIPT_URL + '?action=ping&callback=' + cbName + '&t=' + Date.now();
   document.head.appendChild(script);
-  console.log('DIAG: a testar', script.src);
 })();
 </script>
 </body>
