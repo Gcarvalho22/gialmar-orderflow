@@ -398,8 +398,15 @@ async function syncEncomendas() {
   if (res && !res.error) DB.encomendas = res;
 }
 async function syncClientes() {
-  const res = await apiGet('getClientes');
-  if (res && !res.error) DB.clientes = res;
+  var res = await apiGet('getClientes');
+  if (res && !res.error && Array.isArray(res) && res.length > 0) {
+    DB.clientes = res;
+  } else {
+    // Fallback: clientes locais do data.js
+    DB.clientes = CLIENTES_INICIAIS.map(function(c, i) {
+      return typeof c === 'string' ? {id: i+1, nome: c} : c;
+    });
+  }
 }
 async function syncNotificacoes() {
   const dest = UTILIZADOR.isGerente ? 'gerente' : UTILIZADOR.nome;
