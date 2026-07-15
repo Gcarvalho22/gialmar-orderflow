@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"/><title>Diagnostico</title></head>
+<body style="font-family:monospace;padding:20px;background:#f0f4f5">
+<h2>Diagnostico de Ligacao</h2>
+<div id="log" style="background:#fff;padding:16px;border-radius:8px;border:1px solid #ccc;min-height:200px;white-space:pre-wrap"></div>
+<script>
+var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyWCvCt36e-oLl-elonsegSa2lNxW_T8giCKmMzt1vbcVoytRy_IWlMpupRbnipx5gG/exec';
+var log = document.getElementById('log');
+
+function addLog(msg, color) {
+  var line = document.createElement('div');
+  line.style.color = color || '#333';
+  line.style.marginBottom = '4px';
+  line.textContent = new Date().toLocaleTimeString() + ' — ' + msg;
+  log.appendChild(line);
+}
+
+addLog('A iniciar diagnostico...', '#666');
+addLog('URL: ' + SCRIPT_URL.substring(0,60) + '...', '#666');
+
+// Test 1: JSONP
+addLog('Teste 1: JSONP getContacts...', '#1565c0');
+var cbName = '_test_' + Date.now();
+var script = document.createElement('script');
+var timeout = setTimeout(function(){
+  addLog('ERRO: Timeout apos 10 segundos!', '#c62828');
+  addLog('Possivel causa: Apps Script nao publicado ou URL errado', '#c62828');
+}, 10000);
+
+window[cbName] = function(data) {
+  clearTimeout(timeout);
+  if (Array.isArray(data)) {
+    addLog('SUCESSO! Recebidos ' + data.length + ' contactos', '#2e7d32');
+    if (data.length > 0) addLog('Primeiro: ' + data[0].company, '#2e7d32');
+  } else {
+    addLog('Resposta recebida mas formato inesperado: ' + JSON.stringify(data).substring(0,100), '#e65100');
+  }
+  delete window[cbName];
+  script.remove();
+};
+
+script.onerror = function() {
+  clearTimeout(timeout);
+  addLog('ERRO: script.onerror - falha ao carregar o script', '#c62828');
+  addLog('Possivel causa: CORS ou URL invalido', '#c62828');
+};
+
+script.src = SCRIPT_URL + '?action=getContacts&callback=' + cbName + '&t=' + Date.now();
+addLog('A carregar: ' + script.src.substring(0,80) + '...', '#666');
+document.head.appendChild(script);
+</script>
+</body>
+</html>
