@@ -464,14 +464,16 @@ async function loadDB() {
       DB = res;
       localStorage.setItem('goncalo_contacts', JSON.stringify(DB));
       setSyncStatus('Ligado - ' + DB.length + ' contactos');
-    } else {
-      // Sheets vazio - carregar locais
+    } else if (Array.isArray(res)) {
       loadLocal();
-      setSyncStatus('Sheets vazio - a usar dados locais');
+      setSyncStatus('Sheets vazio - ' + DB.length + ' locais');
+    } else {
+      loadLocal();
+      setSyncStatus('Resposta invalida - ' + DB.length + ' locais');
     }
   } catch(e) {
     loadLocal();
-    setSyncStatus('Sem ligacao - dados locais');
+    setSyncStatus('Erro: ' + e.message + ' - ' + DB.length + ' locais');
   }
   updateDashboard();
   populateCountryFilter();
