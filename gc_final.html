@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Goncalo Contacts</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --primary:#1565c0;--primary-dark:#0d47a1;--primary-light:#e3f2fd;
+  --sea1:#006064;--sea2:#00838f;--sea3:#0097a7;
+  --success:#2e7d32;--success-light:#e8f5e9;
+  --warning:#f57f17;--warning-light:#fff8e1;
+  --danger:#c62828;--danger-light:#ffebee;
+  --purple:#6a1b9a;--purple-light:#f3e5f5;
+  --bg:#e8f4fd;--bg2:#d0e8f8;--surface:#fff;
+  --border:#b3d4f0;--border-light:#ddeeff;
+  --text:#0d2137;--text-secondary:#2c5282;--text-muted:#5b8ab0;
+  --sidebar-w:230px;--topbar-h:62px;--radius:10px;--radius-sm:6px;
+  --shadow:0 2px 8px rgba(21,101,192,.12);--shadow-md:0 6px 20px rgba(21,101,192,.18);
+}
+body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh;font-size:14px}
+.sidebar{width:var(--sidebar-w);background:linear-gradient(180deg,#0a2744 0%,#0d3461 50%,#0a2744 100%);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;box-shadow:3px 0 15px rgba(0,0,0,.25)}
+.sidebar-header{display:flex;align-items:center;justify-content:center;padding:14px;border-bottom:1px solid rgba(255,255,255,.1);min-height:var(--topbar-h);flex-direction:column;gap:4px}
+.app-name{color:white;font-weight:800;font-size:17px;letter-spacing:.5px;text-align:center}
+.app-sub{color:rgba(255,255,255,.4);font-size:10px;letter-spacing:2px;text-transform:uppercase}
+.sidebar-nav{flex:1;padding:14px 8px;display:flex;flex-direction:column;gap:3px;overflow-y:auto}
+.nav-section{font-size:10px;font-weight:800;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:1px;padding:10px 12px 4px}
+.nav-item{display:flex;align-items:center;gap:11px;padding:10px 13px;border-radius:8px;color:rgba(255,255,255,.65);text-decoration:none;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s}
+.nav-item i{font-size:15px;width:18px;text-align:center;flex-shrink:0}
+.nav-item:hover{background:rgba(255,255,255,.1);color:#fff}
+.nav-item.active{background:var(--primary);color:#fff;box-shadow:0 2px 8px rgba(21,101,192,.4)}
+.nav-item-new{border:1px solid rgba(255,255,255,.15);margin-top:4px}
+.sidebar-footer{padding:14px;border-top:1px solid rgba(255,255,255,.1)}
+.user-info{display:flex;align-items:center;gap:10px}
+.user-avatar{width:34px;height:34px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;border:2px solid rgba(255,255,255,.2);flex-shrink:0}
+.user-name{color:#fff;font-size:13px;font-weight:600}
+.user-role{color:rgba(255,255,255,.5);font-size:11px}
+.main-content{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column}
+.topbar{height:var(--topbar-h);background:var(--surface);border-bottom:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:50;box-shadow:var(--shadow)}
+.page-title{font-size:18px;font-weight:700;color:var(--text)}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.search-box{display:flex;align-items:center;gap:8px;background:var(--bg);border:1.5px solid var(--border);border-radius:20px;padding:6px 14px}
+.search-box i{color:var(--text-muted);font-size:13px}
+.search-box input{border:none;background:none;outline:none;font-size:13px;width:180px;color:var(--text)}
+.page{display:none;padding:22px 26px;flex:1}
+.page.active{display:block}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:18px}
+.stat-card{background:var(--surface);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);border-left:4px solid transparent;transition:transform .2s;cursor:pointer;position:relative;overflow:hidden}
+.stat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.stat-card.c1{border-left-color:var(--primary)}.stat-card.c2{border-left-color:var(--sea1)}.stat-card.c3{border-left-color:var(--warning)}.stat-card.c4{border-left-color:var(--success)}.stat-card.c5{border-left-color:var(--danger)}.stat-card.c6{border-left-color:var(--purple)}
+.stat-bg-icon{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:34px;opacity:.07}
+.stat-label{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+.stat-value{font-size:24px;font-weight:800;color:var(--text);line-height:1}
+.stat-sub{font-size:11px;color:var(--text-muted);margin-top:3px}
+.card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;border:1px solid var(--border-light);margin-bottom:16px}
+.card-header{padding:13px 18px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between;background:linear-gradient(to right,#f0f8ff,var(--surface))}
+.card-header h2{font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px}
+.card-header h2 i{color:var(--primary)}
+.card-body{padding:16px 18px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+@media(max-width:1100px){.grid-2{grid-template-columns:1fr}}
+.page-actions{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px;flex-wrap:wrap}
+.filter-group{display:flex;gap:8px;flex:1;flex-wrap:wrap;align-items:center}
+.filter-select{padding:7px 12px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;outline:none}
+.filter-input{padding:7px 12px;border-radius:6px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;outline:none;min-width:200px}
+.filter-input:focus,.filter-select:focus{border-color:var(--primary)}
+.table-info{font-size:12px;color:var(--text-muted);margin-bottom:8px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:all .18s;white-space:nowrap;font-family:inherit}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;box-shadow:0 3px 10px rgba(21,101,192,.35)}
+.btn-primary:hover{box-shadow:0 5px 16px rgba(21,101,192,.45);transform:translateY(-1px)}
+.btn-secondary{background:var(--surface);color:var(--text);border:1.5px solid var(--border)}
+.btn-secondary:hover{background:var(--bg2);border-color:var(--primary);color:var(--primary)}
+.btn-outline{background:transparent;color:var(--primary);border:2px solid var(--primary)}
+.btn-outline:hover{background:var(--primary-light)}
+.btn-danger{background:linear-gradient(135deg,#e53935,#b71c1c);color:#fff}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:6px}
+.btn-xs{padding:4px 8px;font-size:11px;border-radius:5px}
+.w-full{width:100%;justify-content:center}
+.input-text,.input-select,.input-textarea{width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;color:var(--text);background:var(--surface);outline:none;transition:border-color .2s}
+.input-text:focus,.input-select:focus,.input-textarea:focus{border-color:var(--primary)}
+.input-textarea{resize:vertical;min-height:80px}
+.form-group{display:flex;flex-direction:column;gap:4px;flex:1;margin-bottom:12px}
+.form-group label{font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.4px}
+.form-row{display:flex;gap:12px}
+.badge-status{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase}
+.badge-ativo{background:var(--success-light);color:var(--success)}
+.badge-em_estudo{background:#e1f5fe;color:#0288d1}
+.badge-por_validar{background:var(--warning-light);color:var(--warning)}
+.badge-inativo{background:#f5f5f5;color:#9e9e9e}
+.badge-A{background:#fff3e0;color:#e65100;font-weight:800}
+.badge-B{background:#e3f2fd;color:#1565c0;font-weight:800}
+.badge-C{background:#f3e5f5;color:#6a1b9a;font-weight:800}
+.table-wrapper{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;border:1px solid var(--border-light)}
+.data-table{width:100%;border-collapse:collapse}
+.data-table thead{background:linear-gradient(to right,var(--bg2),var(--bg))}
+.data-table th{padding:10px 13px;text-align:left;font-size:10px;font-weight:800;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--border);white-space:nowrap}
+.data-table td{padding:10px 13px;border-bottom:1px solid var(--border-light);font-size:12px;vertical-align:middle}
+.data-table tbody tr:last-child td{border-bottom:none}
+.data-table tbody tr{cursor:pointer;transition:background .15s}
+.data-table tbody tr:hover{background:#f0f8ff}
+.data-table .actions{display:flex;gap:4px}
+.table-empty{padding:40px;text-align:center;color:var(--text-muted)}
+.table-empty i{font-size:28px;margin-bottom:10px;display:block;color:var(--border)}
+.table-pagination{display:flex;align-items:center;justify-content:center;gap:6px;padding:12px}
+.page-btn{min-width:30px;height:30px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);border-radius:var(--radius-sm);cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.page-btn:hover{border-color:var(--primary);color:var(--primary)}
+.page-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.contacts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.contact-card{background:var(--surface);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);border:1px solid var(--border-light);transition:transform .2s;cursor:pointer;border-top:3px solid var(--primary)}
+.contact-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.contact-card.prio-A{border-top-color:#e65100}
+.contact-card.prio-B{border-top-color:var(--primary)}
+.contact-card.prio-C{border-top-color:var(--purple)}
+.contact-card-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+.contact-name{font-weight:700;font-size:14px;color:var(--text)}
+.contact-location{font-size:11px;color:var(--text-muted);margin-top:2px}
+.contact-info{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.contact-info-row{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text-secondary)}
+.contact-info-row i{width:14px;color:var(--primary);flex-shrink:0;font-size:11px}
+.contact-info-row a{color:var(--primary);text-decoration:none}
+.contact-notes{font-size:11px;color:var(--text-muted);background:var(--bg);padding:8px 10px;border-radius:6px;margin-bottom:10px;line-height:1.5;max-height:60px;overflow:hidden}
+.contact-footer{display:flex;align-items:center;justify-content:space-between}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:200;padding:20px;backdrop-filter:blur(3px)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow-md);width:100%;max-width:620px;max-height:92vh;display:flex;flex-direction:column;animation:modalIn .2s ease}
+.modal-lg{max-width:780px}
+@keyframes modalIn{from{opacity:0;transform:scale(.96) translateY(-10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-header{padding:16px 22px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between;background:linear-gradient(to right,var(--primary-light),var(--surface))}
+.modal-header h3{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;color:var(--text)}
+.modal-header h3 i{color:var(--primary)}
+.modal-close{background:none;border:none;color:var(--text-muted);cursor:pointer;width:30px;height:30px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.modal-close:hover{background:var(--bg)}
+.modal-body{padding:20px 22px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.modal-footer{padding:14px 22px;border-top:1px solid var(--border-light);display:flex;justify-content:flex-end;gap:8px;background:var(--bg)}
+.chart-wrap{padding:14px 16px}
+.chart-wrap canvas{max-height:240px}
+.toast-container{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:8px;z-index:999}
+.toast{background:var(--text);color:#fff;padding:12px 18px;border-radius:var(--radius);font-size:13px;font-weight:500;box-shadow:var(--shadow-md);display:flex;align-items:center;gap:10px;min-width:260px;animation:toastIn .3s ease}
+.toast.success{background:var(--success)}.toast.error{background:var(--danger)}.toast.warning{background:var(--warning)}.toast.info{background:var(--primary)}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <div class="app-name"><i class="fa-solid fa-anchor" style="color:#4fc3f7;margin-right:6px"></i>Goncalo Contacts</div>
+    <div class="app-sub">CRM Comercial</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Principal</div>
+    <a class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')"><i class="fa-solid fa-chart-pie"></i><span>Dashboard</span></a>
+    <div class="nav-section">Contactos</div>
+    <a class="nav-item" data-page="todos" onclick="navigateTo('todos')"><i class="fa-solid fa-address-book"></i><span>Todos</span></a>
+    <a class="nav-item" data-page="ativos" onclick="navigateTo('ativos')"><i class="fa-solid fa-circle-check" style="color:#4caf50"></i><span>Ativos</span></a>
+    <a class="nav-item" data-page="em_estudo" onclick="navigateTo('em_estudo')"><i class="fa-solid fa-magnifying-glass" style="color:#29b6f6"></i><span>Em Estudo</span></a>
+    <a class="nav-item" data-page="por_validar" onclick="navigateTo('por_validar')"><i class="fa-solid fa-clock" style="color:#ffa726"></i><span>Por Validar</span></a>
+    <a class="nav-item" data-page="inativo" onclick="navigateTo('inativo')"><i class="fa-solid fa-circle-xmark" style="color:#ef5350"></i><span>Inativos</span></a>
+    <a class="nav-item nav-item-new" data-page="novo" onclick="navigateTo('novo')"><i class="fa-solid fa-plus-circle"></i><span>Novo Contacto</span></a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar">GC</div>
+      <div><div class="user-name">Goncalo C.</div><div class="user-role">Comercial</div></div>
+    </div>
+  </div>
+</aside>
+<main class="main-content">
+  <header class="topbar">
+    <div>
+      <h1 class="page-title" id="pageTitle">Dashboard</h1>
+      <div id="syncStatus" style="font-size:11px;color:var(--text-muted);margin-top:1px">A iniciar...</div>
+    </div>
+    <div class="topbar-right">
+      <div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Pesquisar..." id="globalSearch" oninput="onGlobalSearch(this.value)"/></div>
+    </div>
+  </header>
+
+  <section class="page active" id="page-dashboard">
+    <div class="stats-grid">
+      <div class="stat-card c1" onclick="navigateTo('todos')"><i class="fa-solid fa-address-book stat-bg-icon"></i><div class="stat-label">Total</div><div class="stat-value" id="sTotal">0</div><div class="stat-sub">contactos</div></div>
+      <div class="stat-card c4" onclick="navigateTo('ativos')"><i class="fa-solid fa-circle-check stat-bg-icon"></i><div class="stat-label">Ativos</div><div class="stat-value" id="sAtivos">0</div><div class="stat-sub">em atividade</div></div>
+      <div class="stat-card c2" onclick="navigateTo('em_estudo')"><i class="fa-solid fa-magnifying-glass stat-bg-icon"></i><div class="stat-label">Em Estudo</div><div class="stat-value" id="sEstudo">0</div><div class="stat-sub">a analisar</div></div>
+      <div class="stat-card c3" onclick="navigateTo('por_validar')"><i class="fa-solid fa-clock stat-bg-icon"></i><div class="stat-label">Por Validar</div><div class="stat-value" id="sValidar">0</div><div class="stat-sub">aguardam</div></div>
+      <div class="stat-card c5" onclick="navigateTo('inativo')"><i class="fa-solid fa-circle-xmark stat-bg-icon"></i><div class="stat-label">Inativos</div><div class="stat-value" id="sInativos">0</div><div class="stat-sub">sem atividade</div></div>
+      <div class="stat-card c6"><i class="fa-solid fa-star stat-bg-icon"></i><div class="stat-label">Prioridade A</div><div class="stat-value" id="sPrioA">0</div><div class="stat-sub">alta prioridade</div></div>
+    </div>
+    <div class="grid-2">
+      <div class="card"><div class="card-header"><h2><i class="fa-solid fa-globe"></i> Por Pais</h2></div><div class="chart-wrap"><canvas id="chartPais"></canvas></div></div>
+      <div class="card"><div class="card-header"><h2><i class="fa-solid fa-building"></i> Por Empresa</h2></div><div class="chart-wrap"><canvas id="chartEmpresa"></canvas></div></div>
+    </div>
+    <div class="card"><div class="card-header"><h2><i class="fa-solid fa-clock-rotate-left"></i> Ultimos Adicionados</h2></div><div class="card-body" id="recentContacts"></div></div>
+  </section>
+
+  <section class="page" id="page-todos">
+    <div class="page-actions">
+      <div class="filter-group">
+        <input type="text" class="filter-input" placeholder="Filtrar..." id="filterSearch" oninput="renderList()"/>
+        <select class="filter-select" id="filterPriority" onchange="renderList()"><option value="">Todas prioridades</option><option value="A">A</option><option value="B">B</option><option value="C">C</option></select>
+        <select class="filter-select" id="filterCountry" onchange="renderList()"><option value="">Todos os paises</option></select>
+        <select class="filter-select" id="filterView" onchange="renderList()"><option value="cards">Cards</option><option value="table">Tabela</option></select>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="navigateTo('novo')"><i class="fa-solid fa-plus"></i> Novo</button>
+    </div>
+    <div class="table-info" id="listInfo"></div>
+    <div id="listContainer"></div>
+    <div class="table-pagination" id="listPagination"></div>
+  </section>
+
+  <section class="page" id="page-ativos">
+    <div class="page-actions"><input type="text" class="filter-input" placeholder="Filtrar ativos..." id="filterAtivos" oninput="renderStatusPage('ativo','filterAtivos','bodyAtivos','emptyAtivos','paginAtivos')"/><button class="btn btn-primary btn-sm" onclick="navigateTo('novo')"><i class="fa-solid fa-plus"></i> Novo</button></div>
+    <div class="table-wrapper"><table class="data-table"><thead><tr><th>Empresa</th><th>Pais</th><th>Prioridade</th><th>Email</th><th>Acoes</th></tr></thead><tbody id="bodyAtivos"></tbody></table><div class="table-empty" id="emptyAtivos" style="display:none"><i class="fa-solid fa-circle-check"></i><p>Sem contactos ativos</p></div></div>
+    <div class="table-pagination" id="paginAtivos"></div>
+  </section>
+
+  <section class="page" id="page-em_estudo">
+    <div class="page-actions"><input type="text" class="filter-input" placeholder="Filtrar..." id="filterEstudo" oninput="renderStatusPage('em_estudo','filterEstudo','bodyEstudo','emptyEstudo','paginEstudo')"/><button class="btn btn-primary btn-sm" onclick="navigateTo('novo')"><i class="fa-solid fa-plus"></i> Novo</button></div>
+    <div class="table-wrapper"><table class="data-table"><thead><tr><th>Empresa</th><th>Pais</th><th>Prioridade</th><th>Email</th><th>Acoes</th></tr></thead><tbody id="bodyEstudo"></tbody></table><div class="table-empty" id="emptyEstudo" style="display:none"><i class="fa-solid fa-magnifying-glass"></i><p>Sem contactos em estudo</p></div></div>
+    <div class="table-pagination" id="paginEstudo"></div>
+  </section>
+
+  <section class="page" id="page-por_validar">
+    <div class="page-actions"><input type="text" class="filter-input" placeholder="Filtrar..." id="filterValidar" oninput="renderStatusPage('por_validar','filterValidar','bodyValidar','emptyValidar','paginValidar')"/><button class="btn btn-primary btn-sm" onclick="navigateTo('novo')"><i class="fa-solid fa-plus"></i> Novo</button></div>
+    <div class="table-wrapper"><table class="data-table"><thead><tr><th>Empresa</th><th>Pais</th><th>Prioridade</th><th>Email</th><th>Acoes</th></tr></thead><tbody id="bodyValidar"></tbody></table><div class="table-empty" id="emptyValidar" style="display:none"><i class="fa-solid fa-clock"></i><p>Sem contactos por validar</p></div></div>
+    <div class="table-pagination" id="paginValidar"></div>
+  </section>
+
+  <section class="page" id="page-inativo">
+    <div class="page-actions"><input type="text" class="filter-input" placeholder="Filtrar..." id="filterInativo" oninput="renderStatusPage('inativo','filterInativo','bodyInativo','emptyInativo','paginInativo')"/></div>
+    <div class="table-wrapper"><table class="data-table"><thead><tr><th>Empresa</th><th>Pais</th><th>Prioridade</th><th>Email</th><th>Acoes</th></tr></thead><tbody id="bodyInativo"></tbody></table><div class="table-empty" id="emptyInativo" style="display:none"><i class="fa-solid fa-circle-xmark"></i><p>Sem contactos inativos</p></div></div>
+    <div class="table-pagination" id="paginInativo"></div>
+  </section>
+
+  <section class="page" id="page-novo">
+    <div style="max-width:680px">
+      <div class="card">
+        <div class="card-header"><h2><i class="fa-solid fa-building"></i> <span id="formTitle">Novo Contacto</span></h2></div>
+        <div class="card-body">
+          <input type="hidden" id="editId"/>
+          <div class="form-row">
+            <div class="form-group" style="flex:2"><label>Empresa *</label><input type="text" class="input-text" id="fCompany" placeholder="Nome da empresa"/></div>
+            <div class="form-group"><label>Prioridade</label><select class="input-select" id="fPriority"><option value="A">A - Alta</option><option value="B" selected>B - Media</option><option value="C">C - Baixa</option></select></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Pais</label><input type="text" class="input-text" id="fCountry" placeholder="Ex: Poland"/></div>
+            <div class="form-group"><label>Cidade</label><input type="text" class="input-text" id="fCity" placeholder="Ex: Warsaw"/></div>
+          </div>
+          <div class="form-group"><label>Email(s)</label><input type="text" class="input-text" id="fEmail" placeholder="email@empresa.com"/></div>
+          <div class="form-row">
+            <div class="form-group"><label>Telefone</label><input type="text" class="input-text" id="fPhone" placeholder="+48 ..."/></div>
+            <div class="form-group"><label>Website</label><input type="text" class="input-text" id="fWebsite" placeholder="https://..."/></div>
+          </div>
+          <div class="form-group"><label>Estado</label><select class="input-select" id="fStatus"><option value="em_estudo">Em Estudo</option><option value="por_validar">Por Validar</option><option value="ativo">Ativo</option><option value="inativo">Inativo</option></select></div>
+          <div class="form-group"><label>Notas</label><textarea class="input-textarea" id="fNotes" placeholder="Informacoes sobre a empresa..."></textarea></div>
+          <div class="form-group"><label>Proximo Passo</label><input type="text" class="input-text" id="fNextStep" placeholder="Ex: Enviar proposta..."/></div>
+        </div>
+        <div class="card-footer" style="flex-direction:row;justify-content:flex-end;gap:8px">
+          <button class="btn btn-outline" onclick="clearForm()"><i class="fa-solid fa-rotate-left"></i> Limpar</button>
+          <button class="btn btn-primary" onclick="saveContact()"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="modal-overlay" id="modalDetalhe">
+  <div class="modal modal-lg">
+    <div class="modal-header"><h3><i class="fa-solid fa-building"></i> <span id="modalTitle">Detalhe</span></h3><button class="modal-close" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button></div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer" id="modalFooter"></div>
+  </div>
+</div>
+<div class="toast-container" id="toastContainer"></div>
+<script>
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyWCvCt36e-oLl-elonsegSa2lNxW_T8giCKmMzt1vbcVoytRy_IWlMpupRbnipx5gG/exec";
+const CONTACTS_INITIAL = [{"id": 1, "priority": "A", "company": "Abramczyk", "country": "Poland", "city": "Bydgoszcz", "email": "sekretariat@abramczyk.pl / n.kryze@abramczyk.pl", "website": "https://abramczyk.pl/", "phone": "+48 52 344 56 77 / +48 609 120 135", "notes": "Leading frozen fish producer/distributor\n  sells to major chains and wholesalers.\n mention certifications and ask for category manager.", "next_step": "", "status": "em_estudo"}, {"id": 2, "priority": "A", "company": "PW Waldi", "country": "Poland", "city": "Kościan", "email": "", "website": "https://pwwaldi.com.pl/", "phone": "+48 65 512 2780", "notes": "Importer/distributor of frozen fish and seafood\n B2B and wholesale focus.\nOffer stable supply", "next_step": "", "status": "em_estudo"}, {"id": 3, "priority": "A", "company": "Kuchnie Świata", "country": "Poland", "city": "Czosnów / Warszawa", "email": "zamowienie@kuchnieswiata.com.pl; iodo@kuchnieswiata.com.pl; b2b@kuchnieswiata.com.pl", "website": "https://www.kuchnieswiata.com.pl/en/ryby-mrozone/", "phone": "+48 22 785 95 20 / +48 507 012 094", "notes": "National frozen-fish distributor with broad B2B warehouse.\nLead with assortment breadth and service levels\n propose a test SKU list.", "next_step": "", "status": "em_estudo"}, {"id": 4, "priority": "A", "company": "Tahami Fish", "country": "Poland", "city": "", "email": "dystrybucja@tahami.pl; i.suchodolski@tahami.pl; s.piotrowski@tahami.pl; k.badurowicz@tahami.pl", "website": "tahami.pl", "phone": "", "notes": "Importer/distributor with wholesale and horeca reach.\nUse premium positioning and service reliability\n request the buying desk contact.", "next_step": "", "status": "em_estudo"}, {"id": 5, "priority": "A", "company": "Family Fish / Nord Capital", "country": "Poland", "city": "", "email": "ezadrozna@nordcapital.com.pl", "website": "ezadrozna@nordcapital.com.pl", "phone": "", "notes": "Producer/distributor of frozen fish\n seafood and ready meals.\nPosition as raw material supplier for industrial lines and private label.", "next_step": "", "status": "em_estudo"}, {"id": 6, "priority": "A", "company": "Mare Foods", "country": "Poland", "city": "", "email": "", "website": "", "phone": "", "notes": "Importer/wholesaler profile\n glazing and MOQ.\n good match for frozen seafood trade.\nOpen with core assortment", "next_step": "", "status": "em_estudo"}, {"id": 7, "priority": "A", "company": "Castelmar", "country": "Poland", "city": "", "email": "", "website": "", "phone": "", "notes": "Seafood importer and distributor.\nSuggest a commercial meeting focused on frozen fish assortment.", "next_step": "", "status": "em_estudo"}, {"id": 8, "priority": "B", "company": "DNHS Poland", "country": "Poland", "city": "", "email": "", "website": "", "phone": "", "notes": "Multi-product wholesaler/importer.\nProbe whether frozen fish is already in the buying matrix.", "next_step": "", "status": "em_estudo"}, {"id": 9, "priority": "B", "company": "Eurofish", "country": "Poland", "city": "", "email": "info@eurofish.pl", "website": "", "phone": "", "notes": "Importer/wholesaler.\nSend concise company intro and product sheet.", "next_step": "", "status": "em_estudo"}, {"id": 10, "priority": "B", "company": "Morex", "country": "Poland", "city": "", "email": "", "website": "", "phone": "", "notes": "Trading / wholesale fit.\nAsk what species and formats they buy most often.", "next_step": "", "status": "em_estudo"}, {"id": 11, "priority": "B", "company": "Polseafood", "country": "Poland", "city": "", "email": "", "website": "", "phone": "", "notes": "Frozen pelagic fish profile.\nBest angle is price-competitive regular supply.", "next_step": "", "status": "em_estudo"}, {"id": 12, "priority": "B", "company": "Unifood", "country": "Poland", "city": "", "email": "handlowy@unifood.com.pl; magda@unifoodandwine.pl", "website": "", "phone": "", "notes": "White-fish fillets.\nLead with fillet specs", "next_step": "", "status": "em_estudo"}, {"id": 13, "priority": "B", "company": "Intersea", "country": "Poland", "city": "", "email": "", "website": "", "phone": "", "notes": "Processing / packing.\nAsk if they source raw material for processing.", "next_step": "", "status": "em_estudo"}, {"id": 14, "priority": "B", "company": "Seamor International", "country": "Poland", "city": "", "email": "mp@seamor.com.pl", "website": "", "phone": "", "notes": "Import / distribution.\nGood for a general B2B intro and product range email.", "next_step": "", "status": "em_estudo"}, {"id": 15, "priority": "B", "company": "J.P. Klausen Polska", "country": "Poland", "city": "Szczecin", "email": "martijn.broekhoven@jpklausen.com", "website": "", "phone": "", "notes": "International seafood trader.\nAim for relationship-building and source diversification.", "next_step": "", "status": "em_estudo"}, {"id": 16, "priority": "B", "company": "Impexryb", "country": "Poland", "city": "", "email": "", "website": "", "phone": "", "notes": "Import / wholesale.\nSend a frozen-fish catalogue and ask for purchasing criteria.", "next_step": "", "status": "em_estudo"}, {"id": 17, "priority": "C", "company": "Luxfish", "country": "Poland", "city": "", "email": "", "website": "", "phone": "", "notes": "Seafood wholesale.\nUse as secondary target after the main importers.", "next_step": "", "status": "em_estudo"}, {"id": 18, "priority": "C", "company": "Pescanova Polska", "country": "Poland", "city": "", "email": "", "website": "", "phone": "", "notes": "Frozen fish distribution.\nCheck whether they need additional sourcing capacity.", "next_step": "", "status": "em_estudo"}, {"id": 19, "priority": "C", "company": "Apol", "country": "Poland", "city": "", "email": "", "website": "", "phone": "", "notes": "Frozen fillets.\nFocus on standardised fillets and price tiers.", "next_step": "", "status": "em_estudo"}, {"id": 20, "priority": "C", "company": "Canada Trading", "country": "Poland", "city": "", "email": "", "website": "", "phone": "", "notes": "Input for processing.\nAsk about preferred species and specifications.", "next_step": "", "status": "em_estudo"}, {"id": 21, "priority": "C", "company": "Frosalfish", "country": "Poland", "city": "", "email": "", "website": "", "phone": "", "notes": "Pelagic frozen fish.\nUse a competitive supply and availability angle.", "next_step": "", "status": "em_estudo"}, {"id": 22, "priority": "C", "company": "South Baltic Foods", "country": "Poland", "city": "", "email": "", "website": "", "phone": "", "notes": "Pelagic frozen fish.\nAsk if they buy spot or under contract.", "next_step": "", "status": "em_estudo"}, {"id": 23, "priority": "C", "company": "Espersen Polska", "country": "Poland", "city": "", "email": "praca@espersen.com", "website": "", "phone": "", "notes": "Cod / white fish processor.\nApproach with technical specs and supply reliability.", "next_step": "", "status": "em_estudo"}, {"id": 24, "priority": "C", "company": "Kołobrzeska GP Ryb", "country": "Poland", "city": "Kołobrzeg", "email": "", "website": "", "phone": "", "notes": "Baltic fish / logistics.\nCould be a logistics or local sourcing partner.", "next_step": "", "status": "em_estudo"}, {"id": 25, "priority": "C", "company": "Lodom", "country": "Poland", "city": "", "email": "", "website": "", "phone": "", "notes": "Cold chain.\nUse only if you want cold-storage or distribution contacts.", "next_step": "", "status": "em_estudo"}, {"id": 26, "priority": "C", "company": "Chłodnia Szczecińska", "country": "Poland", "city": "Szczecin", "email": "mgarnys@chlodniaszczecinska.pl", "website": "", "phone": "", "notes": "Cold chain.\nUse only if you want cold-storage or distribution contacts.", "next_step": "", "status": "em_estudo"}, {"id": 27, "priority": "C", "company": "PPU Port Rybacki Gryf", "country": "Poland", "city": "Szczecin", "email": "", "website": "", "phone": "", "notes": "Cold chain.\nUse only if you want cold-storage or distribution contacts.", "next_step": "", "status": "em_estudo"}, {"id": 28, "priority": "B", "company": "Gold Fish", "country": "", "city": "", "email": "", "website": "", "phone": "", "notes": "Seafood wholesaler.\nWorth a direct introduction if seafood volume is relevant.", "next_step": "", "status": "em_estudo"}];
+
+var DB = [];
+var currentPage = 1;
+var PAGE_SIZE = 20;
+var charts = {};
+
+// JSONP
+function jsonpGet(action) {
+  return new Promise(function(resolve, reject) {
+    var cb = '_cb_' + Date.now();
+    var s = document.createElement('script');
+    var t = setTimeout(function(){ reject(new Error('Timeout')); cleanup(); }, 12000);
+    window[cb] = function(data){ resolve(data); cleanup(); };
+    s.onerror = function(){ reject(new Error('onerror')); cleanup(); };
+    function cleanup(){ clearTimeout(t); delete window[cb]; if(s.parentNode) s.parentNode.removeChild(s); }
+    s.src = APPS_SCRIPT_URL + '?action=' + action + '&callback=' + cb + '&t=' + Date.now();
+    document.head.appendChild(s);
+  });
+}
+
+function apiPost(action, data) {
+  var body = Object.assign({ action: action }, data);
+  return fetch(APPS_SCRIPT_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify(body) })
+    .then(function(r){ return r.json(); })
+    .catch(function(e){ return { error: e.message }; });
+}
+
+function setSyncStatus(msg, color) {
+  var el = document.getElementById('syncStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = color || '#5b8ab0';
+}
+
+function loadLocal() {
+  var saved = localStorage.getItem('gc_contacts');
+  if (saved) {
+    try { DB = JSON.parse(saved); return; } catch(e) {}
+  }
+  DB = CONTACTS_INITIAL.map(function(c, i) {
+    return { id: i+1, company: c.company||c.descricao||'', priority: c.priority||'B',
+      country: c.country||'', city: c.city||'', email: c.email||'', phone: c.phone||'',
+      website: c.website||'', status: c.status||'em_estudo', notes: c.notes||'',
+      next_step: c.next_step||'', createdAt: new Date().toISOString() };
+  });
+  localStorage.setItem('gc_contacts', JSON.stringify(DB));
+}
+
+function loadData() {
+  setSyncStatus('A sincronizar...');
+  jsonpGet('getContacts').then(function(res) {
+    if (Array.isArray(res) && res.length > 0) {
+      DB = res;
+      localStorage.setItem('gc_contacts', JSON.stringify(DB));
+      setSyncStatus('Ligado - ' + DB.length + ' contactos', '#2e7d32');
+    } else {
+      loadLocal();
+      setSyncStatus('Dados locais - ' + DB.length + ' contactos', '#f57f17');
+    }
+    updateDashboard();
+    populateCountryFilter();
+  }).catch(function(e) {
+    loadLocal();
+    setSyncStatus('Offline - ' + DB.length + ' locais', '#f57f17');
+    updateDashboard();
+    populateCountryFilter();
+  });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  setSyncStatus('A ligar ao Google Sheets...');
+  initNav();
+  loadData();
+  setInterval(loadData, 60000);
+});
+
+function initNav() {
+  document.querySelectorAll('.nav-item').forEach(function(item) {
+    item.addEventListener('click', function(e) { e.preventDefault(); navigateTo(item.dataset.page); });
+  });
+}
+
+function navigateTo(page) {
+  document.querySelectorAll('.nav-item').forEach(function(i){ i.classList.remove('active'); });
+  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+  var nav = document.querySelector('.nav-item[data-page="' + page + '"]');
+  if (nav) nav.classList.add('active');
+  var pg = document.getElementById('page-' + page);
+  if (pg) pg.classList.add('active');
+  var titles = { dashboard:'Dashboard', todos:'Todos os Contactos', ativos:'Ativos', em_estudo:'Em Estudo', por_validar:'Por Validar', inativo:'Inativos', novo:'Novo Contacto' };
+  document.getElementById('pageTitle').textContent = titles[page] || page;
+  currentPage = 1;
+  if (page === 'dashboard') updateDashboard();
+  if (page === 'todos') renderList();
+  if (page === 'ativos') renderStatusPage('ativo','filterAtivos','bodyAtivos','emptyAtivos','paginAtivos');
+  if (page === 'em_estudo') renderStatusPage('em_estudo','filterEstudo','bodyEstudo','emptyEstudo','paginEstudo');
+  if (page === 'por_validar') renderStatusPage('por_validar','filterValidar','bodyValidar','emptyValidar','paginValidar');
+  if (page === 'inativo') renderStatusPage('inativo','filterInativo','bodyInativo','emptyInativo','paginInativo');
+  if (page === 'novo') { clearForm(); document.getElementById('formTitle').textContent = 'Novo Contacto'; }
+}
+
+function updateDashboard() {
+  var total=DB.length, ativos=0, estudo=0, validar=0, inativos=0, prioA=0;
+  DB.forEach(function(c) {
+    if(c.status==='ativo') ativos++;
+    else if(c.status==='em_estudo') estudo++;
+    else if(c.status==='por_validar') validar++;
+    else if(c.status==='inativo') inativos++;
+    if(c.priority==='A') prioA++;
+  });
+  document.getElementById('sTotal').textContent = total;
+  document.getElementById('sAtivos').textContent = ativos;
+  document.getElementById('sEstudo').textContent = estudo;
+  document.getElementById('sValidar').textContent = validar;
+  document.getElementById('sInativos').textContent = inativos;
+  document.getElementById('sPrioA').textContent = prioA;
+
+  var rc = document.getElementById('recentContacts');
+  var recent = DB.slice().sort(function(a,b){ return new Date(b.createdAt)-new Date(a.createdAt); }).slice(0,5);
+  rc.innerHTML = recent.map(function(c) {
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border-light)">' +
+      '<div><div style="font-weight:700;font-size:13px">' + c.company + '</div><div style="font-size:11px;color:var(--text-muted)">' + (c.country||'-') + (c.city?' / '+c.city:'') + '</div></div>' +
+      '<div style="display:flex;gap:6px"><span class="badge-status badge-' + c.priority + '">' + c.priority + '</span><span class="badge-status badge-' + c.status + '">' + statusLabel(c.status) + '</span></div>' +
+    '</div>';
+  }).join('');
+
+  renderCharts();
+}
+
+function renderCharts() {
+  var paisCount = {};
+  DB.forEach(function(c){ var p=c.country||'?'; paisCount[p]=(paisCount[p]||0)+1; });
+  var paisLabels = Object.keys(paisCount).sort(function(a,b){ return paisCount[b]-paisCount[a]; }).slice(0,8);
+  var paisData = paisLabels.map(function(p){ return paisCount[p]; });
+  var colors = ['#1565c0','#0288d1','#006064','#00838f','#0097a7','#26c6da','#4fc3f7','#81d4fa'];
+
+  if (charts.pais) charts.pais.destroy();
+  var ctx1 = document.getElementById('chartPais').getContext('2d');
+  charts.pais = new Chart(ctx1, { type:'doughnut', data:{ labels:paisLabels, datasets:[{ data:paisData, backgroundColor:colors.slice(0,paisLabels.length), borderWidth:2, borderColor:'#fff', hoverOffset:6 }] }, options:{ responsive:true, plugins:{ legend:{ position:'bottom', labels:{ font:{size:11}, boxWidth:12, padding:8 } } } } });
+
+  var top = DB.slice().sort(function(a,b){ return a.company.localeCompare(b.company); }).slice(0,10);
+  var empLabels = top.map(function(c){ return c.company.length>20?c.company.substring(0,20)+'...':c.company; });
+  var empColors = top.map(function(c){ return c.priority==='A'?'#e65100':c.priority==='B'?'#1565c0':'#6a1b9a'; });
+
+  if (charts.empresa) charts.empresa.destroy();
+  var ctx2 = document.getElementById('chartEmpresa').getContext('2d');
+  charts.empresa = new Chart(ctx2, { type:'bar', data:{ labels:empLabels, datasets:[{ data:top.map(function(){return 1;}), backgroundColor:empColors, borderRadius:4, borderWidth:0 }] }, options:{ indexAxis:'y', responsive:true, plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:function(ctx){ var c=top[ctx.dataIndex]; return ' '+c.company+' ('+c.country+') Prio '+c.priority; } } } }, scales:{ x:{display:false}, y:{ticks:{font:{size:11}}} } } });
+}
+
+function populateCountryFilter() {
+  var countries = [];
+  DB.forEach(function(c){ if(c.country && countries.indexOf(c.country)<0) countries.push(c.country); });
+  countries.sort();
+  var sel = document.getElementById('filterCountry');
+  if (!sel) return;
+  var cur = sel.value;
+  sel.innerHTML = '<option value="">Todos os paises</option>' + countries.map(function(c){ return '<option value="' + c + '" ' + (c===cur?'selected':'') + '>' + c + '</option>'; }).join('');
+}
+
+function renderList() {
+  var search = ((document.getElementById('filterSearch')||{}).value||'').toLowerCase();
+  var priority = (document.getElementById('filterPriority')||{}).value||'';
+  var country = (document.getElementById('filterCountry')||{}).value||'';
+  var view = (document.getElementById('filterView')||{}).value||'cards';
+
+  var filtered = DB.filter(function(c) {
+    var ms = !search || c.company.toLowerCase().indexOf(search)>=0 || (c.email&&c.email.toLowerCase().indexOf(search)>=0) || (c.country&&c.country.toLowerCase().indexOf(search)>=0);
+    return ms && (!priority||c.priority===priority) && (!country||c.country===country);
+  });
+
+  var total=filtered.length, totalPages=Math.ceil(total/PAGE_SIZE);
+  if(currentPage>totalPages) currentPage=Math.max(1,totalPages);
+  var start=(currentPage-1)*PAGE_SIZE, paged=filtered.slice(start,start+PAGE_SIZE);
+
+  var info=document.getElementById('listInfo');
+  if(info) info.textContent='A mostrar '+paged.length+' de '+total+' contacto(s)';
+
+  var container=document.getElementById('listContainer');
+  if(!container) return;
+
+  if(view==='cards') {
+    container.innerHTML='<div class="contacts-grid">'+paged.map(contactCard).join('')+'</div>';
+  } else {
+    container.innerHTML='<div class="table-wrapper"><table class="data-table"><thead><tr><th>Empresa</th><th>Pais</th><th>Prioridade</th><th>Estado</th><th>Email</th><th>Acoes</th></tr></thead><tbody>'+paged.map(contactRow).join('')+'</tbody></table></div>';
+  }
+  renderPagination('listPagination', currentPage, totalPages, function(p){ currentPage=p; renderList(); });
+}
+
+function contactCard(c) {
+  return '<div class="contact-card prio-' + c.priority + '" onclick="viewContact(' + c.id + ')">' +
+    '<div class="contact-card-header">' +
+      '<div><div class="contact-name">' + c.company + '</div><div class="contact-location">' + (c.city||c.country||'-') + '</div></div>' +
+      '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span class="badge-status badge-' + c.priority + '">' + c.priority + '</span><span class="badge-status badge-' + c.status + '">' + statusLabel(c.status) + '</span></div>' +
+    '</div>' +
+    '<div class="contact-info">' +
+      (c.email?'<div class="contact-info-row"><i class="fa-solid fa-envelope"></i>' + c.email.substring(0,35) + '</div>':'') +
+      (c.phone?'<div class="contact-info-row"><i class="fa-solid fa-phone"></i>' + c.phone.substring(0,30) + '</div>':'') +
+      (c.website?'<div class="contact-info-row"><i class="fa-solid fa-globe"></i>' + c.website.replace('https://','').substring(0,30) + '</div>':'') +
+    '</div>' +
+    (c.notes?'<div class="contact-notes">' + c.notes.substring(0,100) + '</div>':'') +
+    '<div class="contact-footer">' +
+      (c.next_step?'<div style="font-size:11px;color:var(--warning);font-weight:600"><i class="fa-solid fa-arrow-right"></i> ' + c.next_step.substring(0,35) + '</div>':'<div></div>') +
+      '<div style="display:flex;gap:4px" onclick="event.stopPropagation()">' +
+        '<button class="btn btn-secondary btn-xs" onclick="editContact(' + c.id + ')"><i class="fa-solid fa-pen"></i></button>' +
+        '<button class="btn btn-danger btn-xs" onclick="deleteContact(' + c.id + ')"><i class="fa-solid fa-trash"></i></button>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function contactRow(c) {
+  return '<tr onclick="viewContact(' + c.id + ')">' +
+    '<td><strong>' + c.company + '</strong></td>' +
+    '<td>' + (c.country||'-') + '</td>' +
+    '<td><span class="badge-status badge-' + c.priority + '">' + c.priority + '</span></td>' +
+    '<td><span class="badge-status badge-' + c.status + '">' + statusLabel(c.status) + '</span></td>' +
+    '<td style="font-size:11px">' + ((c.email||'').substring(0,30)||'-') + '</td>' +
+    '<td><div class="actions" onclick="event.stopPropagation()">' +
+      '<button class="btn btn-secondary btn-xs" onclick="editContact(' + c.id + ')"><i class="fa-solid fa-pen"></i></button>' +
+      '<button class="btn btn-danger btn-xs" onclick="deleteContact(' + c.id + ')"><i class="fa-solid fa-trash"></i></button>' +
+    '</div></td>' +
+  '</tr>';
+}
+
+function renderStatusPage(status, filterId, bodyId, emptyId, paginId) {
+  var search = ((document.getElementById(filterId)||{}).value||'').toLowerCase();
+  var filtered = DB.filter(function(c){ return c.status===status && (!search||c.company.toLowerCase().indexOf(search)>=0); });
+  var total=filtered.length, totalPages=Math.ceil(total/PAGE_SIZE);
+  var start=(currentPage-1)*PAGE_SIZE, paged=filtered.slice(start,start+PAGE_SIZE);
+  var tbody=document.getElementById(bodyId), empty=document.getElementById(emptyId);
+  if(!paged.length){ if(tbody)tbody.innerHTML=''; if(empty)empty.style.display='block'; return; }
+  if(empty)empty.style.display='none';
+  if(tbody)tbody.innerHTML=paged.map(contactRow).join('');
+  renderPagination(paginId, currentPage, totalPages, function(p){ currentPage=p; renderStatusPage(status,filterId,bodyId,emptyId,paginId); });
+}
+
+function viewContact(id) {
+  var c=DB.find(function(x){ return x.id===id; }); if(!c) return;
+  document.getElementById('modalTitle').textContent = c.company;
+  document.getElementById('modalBody').innerHTML =
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">' +
+      '<div><span style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Pais / Cidade</span><div style="font-size:13px;font-weight:600;margin-top:2px">' + (c.country||'-') + (c.city?' / '+c.city:'') + '</div></div>' +
+      '<div><span style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Estado</span><div style="margin-top:4px"><span class="badge-status badge-' + c.status + '">' + statusLabel(c.status) + '</span></div></div>' +
+      '<div><span style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Prioridade</span><div style="margin-top:4px"><span class="badge-status badge-' + c.priority + '">' + c.priority + '</span></div></div>' +
+      '<div><span style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Website</span><div style="font-size:13px;margin-top:2px">' + (c.website?'<a href="' + (c.website.startsWith('http')?c.website:'https://'+c.website) + '" target="_blank" style="color:var(--primary)">' + c.website + '</a>':'-') + '</div></div>' +
+    '</div>' +
+    (c.email?'<div style="margin-bottom:10px"><span style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Email</span><div style="font-size:13px;margin-top:4px;word-break:break-all">' + c.email + '</div></div>':'') +
+    (c.phone?'<div style="margin-bottom:10px"><span style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Telefone</span><div style="font-size:13px;margin-top:4px">' + c.phone + '</div></div>':'') +
+    (c.notes?'<div style="margin-bottom:10px"><span style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Notas</span><div style="font-size:13px;margin-top:6px;background:var(--bg);padding:12px;border-radius:6px;line-height:1.6;white-space:pre-wrap">' + c.notes + '</div></div>':'') +
+    (c.next_step?'<div><span style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Proximo Passo</span><div style="font-size:13px;margin-top:6px;background:var(--warning-light);padding:10px;border-radius:6px;color:var(--warning);font-weight:600"><i class="fa-solid fa-arrow-right"></i> ' + c.next_step + '</div></div>':'');
+  document.getElementById('modalFooter').innerHTML =
+    '<button class="btn btn-outline" onclick="closeModal()">Fechar</button>' +
+    '<button class="btn btn-secondary" onclick="editContact(' + c.id + ');closeModal()"><i class="fa-solid fa-pen"></i> Editar</button>' +
+    '<button class="btn btn-danger" onclick="deleteContact(' + c.id + ');closeModal()"><i class="fa-solid fa-trash"></i> Eliminar</button>';
+  document.getElementById('modalDetalhe').classList.add('open');
+}
+
+function editContact(id) {
+  var c=DB.find(function(x){ return x.id===id; }); if(!c) return;
+  navigateTo('novo');
+  document.getElementById('formTitle').textContent = 'Editar Contacto';
+  document.getElementById('editId').value = id;
+  document.getElementById('fCompany').value = c.company||'';
+  document.getElementById('fPriority').value = c.priority||'B';
+  document.getElementById('fCountry').value = c.country||'';
+  document.getElementById('fCity').value = c.city||'';
+  document.getElementById('fEmail').value = c.email||'';
+  document.getElementById('fPhone').value = c.phone||'';
+  document.getElementById('fWebsite').value = c.website||'';
+  document.getElementById('fStatus').value = c.status||'em_estudo';
+  document.getElementById('fNotes').value = c.notes||'';
+  document.getElementById('fNextStep').value = c.next_step||'';
+}
+
+function deleteContact(id) {
+  if(!confirm('Eliminar este contacto?')) return;
+  apiPost('deleteContact', { id: id }).then(function() {
+    DB = DB.filter(function(c){ return c.id!==id; });
+    localStorage.setItem('gc_contacts', JSON.stringify(DB));
+    updateDashboard(); renderList();
+    showToast('Contacto eliminado.','warning');
+  });
+}
+
+function saveContact() {
+  var company = document.getElementById('fCompany').value.trim();
+  if(!company){ showToast('O nome da empresa e obrigatorio.','error'); return; }
+  var editId = document.getElementById('editId').value;
+  var contact = {
+    id: editId ? parseInt(editId) : Date.now(),
+    company: company,
+    priority: document.getElementById('fPriority').value,
+    country: document.getElementById('fCountry').value.trim(),
+    city: document.getElementById('fCity').value.trim(),
+    email: document.getElementById('fEmail').value.trim(),
+    phone: document.getElementById('fPhone').value.trim(),
+    website: document.getElementById('fWebsite').value.trim(),
+    status: document.getElementById('fStatus').value,
+    notes: document.getElementById('fNotes').value.trim(),
+    next_step: document.getElementById('fNextStep').value.trim(),
+    createdAt: editId ? (DB.find(function(c){ return c.id===parseInt(editId); })||{}).createdAt||new Date().toISOString() : new Date().toISOString()
+  };
+  apiPost('saveContact', { data: contact }).then(function(res) {
+    if(res && res.ok) {
+      if(editId) { var idx=DB.findIndex(function(c){ return c.id===parseInt(editId); }); if(idx>=0) DB[idx]=Object.assign({},contact,{id:parseInt(editId)}); showToast('Contacto atualizado!','success'); }
+      else { contact.id=res.id||Date.now(); DB.push(contact); showToast('Contacto adicionado!','success'); }
+    } else {
+      if(editId) { var idx=DB.findIndex(function(c){ return c.id===parseInt(editId); }); if(idx>=0) DB[idx]=contact; }
+      else { contact.id=Date.now(); DB.push(contact); }
+      showToast('Guardado localmente','warning');
+    }
+    localStorage.setItem('gc_contacts', JSON.stringify(DB));
+    updateDashboard(); populateCountryFilter(); clearForm(); navigateTo('todos');
+  });
+}
+
+function clearForm() {
+  ['editId','fCompany','fCountry','fCity','fEmail','fPhone','fWebsite','fNotes','fNextStep'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+  var fp=document.getElementById('fPriority'); if(fp) fp.value='B';
+  var fs=document.getElementById('fStatus'); if(fs) fs.value='em_estudo';
+}
+
+function onGlobalSearch(val) {
+  if(val.length<2) return;
+  navigateTo('todos');
+  var el=document.getElementById('filterSearch'); if(el) el.value=val;
+  renderList();
+}
+
+function renderPagination(containerId, currentPage, totalPages, onPageClick) {
+  var container=document.getElementById(containerId); if(!container) return;
+  if(totalPages<=1){ container.innerHTML=''; return; }
+  var html='<button class="page-btn" onclick="(' + onPageClick.toString() + ')(' + (currentPage-1) + ')" ' + (currentPage===1?'disabled':'') + '>&#8249;</button>';
+  for(var p=Math.max(1,currentPage-2); p<=Math.min(totalPages,currentPage+2); p++) {
+    html+='<button class="page-btn ' + (p===currentPage?'active':'') + '" onclick="(' + onPageClick.toString() + ')(' + p + ')">' + p + '</button>';
+  }
+  html+='<button class="page-btn" onclick="(' + onPageClick.toString() + ')(' + (currentPage+1) + ')" ' + (currentPage===totalPages?'disabled':'') + '>&#8250;</button>';
+  container.innerHTML=html;
+}
+
+function statusLabel(s){ return {ativo:'Ativo',em_estudo:'Em Estudo',por_validar:'Por Validar',inativo:'Inativo'}[s]||s; }
+function closeModal(){ document.getElementById('modalDetalhe').classList.remove('open'); }
+document.getElementById('modalDetalhe').addEventListener('click', function(e){ if(e.target===this) this.classList.remove('open'); });
+function showToast(msg,type) {
+  type=type||'info';
+  var icons={success:'fa-check-circle',error:'fa-circle-xmark',warning:'fa-triangle-exclamation',info:'fa-info-circle'};
+  var t=document.createElement('div'); t.className='toast '+type;
+  t.innerHTML='<i class="fa-solid '+icons[type]+'"></i><span>'+msg+'</span>';
+  var tc=document.getElementById('toastContainer'); if(tc) tc.appendChild(t);
+  setTimeout(function(){ t.style.opacity='0'; t.style.transition='0.3s'; setTimeout(function(){ t.remove(); },300); },4000);
+}
+</script>
+</body>
+</html>
