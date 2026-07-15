@@ -229,7 +229,7 @@ body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(
 
 <main class="main-content">
   <header class="topbar">
-    <div><h1 class="page-title" id="pageTitle">Dashboard</h1><div id="syncStatus" style="font-size:11px;color:var(--text-muted);margin-top:1px">A ligar...</div></div>
+    <div><h1 class="page-title" id="pageTitle">Dashboard</h1><div id="syncStatus" style="font-size:11px;color:var(--text-muted);margin-top:1px">JS a iniciar...</div></div>
     <div class="topbar-right">
       <div class="search-box">
         <i class="fa-solid fa-magnifying-glass"></i>
@@ -450,8 +450,17 @@ let charts = {};
 
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', function() {
+  var el = document.getElementById('syncStatus');
+  if (el) el.textContent = 'DOM pronto - a iniciar...';
   initNav();
-  loadDB();
+  setTimeout(function() {
+    var el2 = document.getElementById('syncStatus');
+    if (el2) el2.textContent = 'A chamar loadDB...';
+    loadDB().catch(function(e) {
+      var el3 = document.getElementById('syncStatus');
+      if (el3) el3.textContent = 'Erro critico: ' + e.message;
+    });
+  }, 100);
   setInterval(function(){ loadDB(); }, 60000);
 });
 
