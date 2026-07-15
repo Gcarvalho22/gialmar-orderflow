@@ -462,36 +462,38 @@ async function loadDB() {
     var res = await apiGet('getContacts');
     if (Array.isArray(res) && res.length > 0) {
       DB = res;
+      localStorage.setItem('goncalo_contacts', JSON.stringify(DB));
       setSyncStatus('Ligado - ' + DB.length + ' contactos');
-      var ib = document.getElementById('importBtn'); if(ib) ib.style.display='none';
     } else {
-      // Google Sheets vazio - usar dados locais
-      var saved = localStorage.getItem('goncalo_contacts');
-      if (saved) {
-        DB = JSON.parse(saved);
-      } else {
-        DB = CONTACTS_INITIAL.map(function(c, i) {
-          return Object.assign({}, c, { id: i+1, createdAt: new Date().toISOString() });
-        });
-        localStorage.setItem('goncalo_contacts', JSON.stringify(DB));
-      }
-      setSyncStatus('Ligado - ' + DB.length + ' contactos (locais)');
-      // Show import button
-      var ib = document.getElementById('importBtn');
-      if (ib) ib.style.display = 'inline-flex';
+      // Sheets vazio - carregar locais
+      loadLocal();
+      setSyncStatus('Sheets vazio - a usar dados locais');
     }
   } catch(e) {
-    var saved = localStorage.getItem('goncalo_contacts');
-    DB = saved ? JSON.parse(saved) : CONTACTS_INITIAL.map(function(c,i){ return Object.assign({},c,{id:i+1,createdAt:new Date().toISOString()}); });
-    setSyncStatus('Sem ligacao - ' + DB.length + ' contactos locais');
-    updateDashboard(); populateCountryFilter();
+    loadLocal();
+    setSyncStatus('Sem ligacao - dados locais');
   }
-  localStorage.setItem('goncalo_contacts', JSON.stringify(DB));
   updateDashboard();
   populateCountryFilter();
 }
+function loadLocal() {
+  var saved = localStorage.getItem('goncalo_contacts');
+  if (saved) {
+    try { DB = JSON.parse(saved); } catch(e) { DB = getInitialData(); }
+  } else {
+    DB = getInitialData();
+    localStorage.setItem('goncalo_contacts', JSON.stringify(DB));
+  }
+}
+function getInitialData() {
+  return CONTACTS_INITIAL.map(function(c,i){ return Object.assign({},c,{id:i+1,createdAt:new Date().toISOString()}); });
+}
 function saveDB() { localStorage.setItem('goncalo_contacts', JSON.stringify(DB)); }
-function setSyncStatus(msg) { var el=document.getElementById('syncStatus'); if(el)el.textContent=msg; }
+function setSyncStatus(msg) {
+  var el=document.getElementById('syncStatus'); if(!el)return;
+  el.textContent=msg;
+  el.style.color = msg.indexOf('Ligado')>=0 ? '#2e7d4f' : msg.indexOf('Sem')>=0||msg.indexOf('vazio')>=0 ? '#c47a1e' : '#8aa5ad';
+}
 
 // ===== NAV =====
 function initNav() {
