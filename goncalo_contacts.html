@@ -235,7 +235,8 @@ body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(
         <i class="fa-solid fa-magnifying-glass"></i>
         <input type="text" placeholder="Pesquisar contacto..." id="globalSearch" oninput="onGlobalSearch(this.value)"/>
       </div>
-    </div>
+      <button id="importBtn" onclick="importToSheets()" style="display:none;background:linear-gradient(135deg,#1565c0,#0d47a1);color:white;border:none;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;align-items:center;gap:6px"><i class="fa-solid fa-cloud-arrow-up"></i> Importar para Sheets</button>
+  </div>
   </header>
 
   <!-- DASHBOARD -->
@@ -432,7 +433,13 @@ async function apiPost(action, data) {
   try {
     var res = await fetch(APPS_SCRIPT_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify(body) });
     return res.json();
-  } catch(e) { return { error: e.message }; }
+  } catch(e) {
+    // Fallback: try GET with encoded data
+    try {
+      var encoded = encodeURIComponent(JSON.stringify(body));
+      return await apiGet(action, { data: encoded });
+    } catch(e2) { return { error: e2.message }; }
+  }
 }
 
 // ===== STATE =====
@@ -455,20 +462,29 @@ async function loadDB() {
     var res = await apiGet('getContacts');
     if (Array.isArray(res) && res.length > 0) {
       DB = res;
-      setSyncStatus('Atualizado ' + new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'}));
+      setSyncStatus('Ligado - ' + DB.length + ' contactos');
+      var ib = document.getElementById('importBtn'); if(ib) ib.style.display='none';
     } else {
-      setSyncStatus('A importar dados...');
-      var initial = CONTACTS_INITIAL.map(function(c, i) {
-        return Object.assign({}, c, { id: i+1, createdAt: new Date().toISOString() });
-      });
-      var importRes = await apiPost('importContacts', { contacts: initial });
-      DB = initial;
-      setSyncStatus(importRes && importRes.ok ? 'Importado! ' + DB.length + ' contactos' : 'Modo offline');
+      // Google Sheets vazio - usar dados locais
+      var saved = localStorage.getItem('goncalo_contacts');
+      if (saved) {
+        DB = JSON.parse(saved);
+      } else {
+        DB = CONTACTS_INITIAL.map(function(c, i) {
+          return Object.assign({}, c, { id: i+1, createdAt: new Date().toISOString() });
+        });
+        localStorage.setItem('goncalo_contacts', JSON.stringify(DB));
+      }
+      setSyncStatus('Ligado - ' + DB.length + ' contactos (locais)');
+      // Show import button
+      var ib = document.getElementById('importBtn');
+      if (ib) ib.style.display = 'inline-flex';
     }
   } catch(e) {
     var saved = localStorage.getItem('goncalo_contacts');
     DB = saved ? JSON.parse(saved) : CONTACTS_INITIAL.map(function(c,i){ return Object.assign({},c,{id:i+1,createdAt:new Date().toISOString()}); });
-    setSyncStatus('Sem ligacao - dados locais');
+    setSyncStatus('Sem ligacao - ' + DB.length + ' contactos locais');
+    updateDashboard(); populateCountryFilter();
   }
   localStorage.setItem('goncalo_contacts', JSON.stringify(DB));
   updateDashboard();
@@ -777,6 +793,23 @@ function renderPagination(containerId, currentPage, totalPages, onPageClick) {
 }
 
 // ===== HELPERS =====
+async function importToSheets() {
+  var btn = document.getElementById('importBtn');
+  if (btn) { btn.textContent = 'A importar...'; btn.disabled = true; }
+  try {
+    var res = await apiPost('importContacts', { contacts: DB });
+    if (res && res.ok) {
+      showToast('Importado! ' + DB.length + ' contactos no Google Sheets.', 'success');
+      if (btn) btn.style.display = 'none';
+    } else {
+      showToast('Erro na importacao. Tenta novamente.', 'error');
+      if (btn) { btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Importar para Sheets'; btn.disabled = false; }
+    }
+  } catch(e) {
+    showToast('Sem ligacao ao servidor.', 'error');
+    if (btn) { btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Importar para Sheets'; btn.disabled = false; }
+  }
+}
 function statusLabel(s){return{ativo:'Ativo',em_estudo:'Em Estudo',por_validar:'Por Validar',inativo:'Inativo'}[s]||s;}
 function openModal(id){var el=document.getElementById(id);if(el)el.classList.add('open');}
 function closeModal(id){var el=document.getElementById(id);if(el)el.classList.remove('open');}
