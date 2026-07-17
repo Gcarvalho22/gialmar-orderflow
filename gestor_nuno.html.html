@@ -313,7 +313,7 @@ body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(
 <div class="modal modal-lg">
 <div class="modal-header"><h3><i class="fa-solid fa-receipt"></i> <span id="modalVerTitle">Encomenda</span></h3><button class="modal-close" onclick="closeModal('modalVer')"><i class="fa-solid fa-xmark"></i></button></div>
 <div class="modal-body" id="modalVerBody"></div>
-<div class="modal-footer">
+<div class="modal-footer" id="modalFooter">
 <button class="btn btn-secondary" onclick="closeModal('modalVer')">Fechar</button>
 <button class="btn btn-print" onclick="printModalVer()"><i class="fa-solid fa-print"></i> Imprimir / PDF</button>
 </div>
@@ -514,15 +514,74 @@ function renderPendentes() {
       '<td>'+fmtDate(e.data)+'</td>' +
       '<td style="font-weight:500">'+e.clienteNome+'</td>' +
       '<td><code style="background:var(--bg2);padding:2px 5px;border-radius:3px;font-size:11px">'+(e.numCliente||getNumCliente(e.clienteNome)||'—')+'</code></td>' +
+      '<td>'+(e.localidade?'<span style="background:var(--blue-light);color:var(--blue);padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600"><i class="fa-solid fa-location-dot"></i> '+e.localidade+'</span>':'<span style="color:var(--text-muted);font-size:11px">—</span>')+'</td>' +
       '<td style="color:var(--text-secondary)">'+itens.length+'</td>' +
       '<td><strong style="color:var(--primary)">'+fmtCur(e.total)+'</strong></td>' +
       '<td style="font-size:11px;color:var(--text-secondary)">'+e.criadoPor+'</td>' +
       '<td><div class="actions">' +
         '<button class="btn btn-success btn-xs" onclick="abrirLancar('+e.id+')"><i class="fa-solid fa-truck-fast"></i> Lancar</button>' +
         '<button class="btn btn-secondary btn-xs" onclick="verEncomenda('+e.id+')"><i class="fa-solid fa-eye"></i></button>' +
+        '<button class="btn btn-blue btn-xs" onclick="abrirAtribuirLocalidade('+e.id+')" title="Atribuir localidade"><i class="fa-solid fa-location-dot"></i></button>' +
       '</div></td>' +
     '</tr>';
   }).join('');
+}
+
+// ===== ATRIBUIR LOCALIDADE (pendentes) =====
+function abrirAtribuirLocalidade(id) {
+  var e = encomendas.find(function(x){return x.id===id;}); if(!e)return;
+  var trajetoOpts = TRAJETOS.map(function(t){
+    var cams = camioesDB.filter(function(c){return c.disponivel&&(c.trajeto===t||(c.trajetos_extra||[]).indexOf(t)>=0);});
+    return '<option value="'+t+'">'+t+(cams.length?' ('+cams.length+' camiao(s))':' (sem camiao)')+' </option>';
+  }).join('');
+  var html = '<div style="margin-bottom:12px;background:var(--bg);padding:12px;border-radius:8px">' +
+    '<div style="font-weight:700">#'+fmtId(e.id)+' — '+e.clienteNome+'</div>' +
+    '<div style="font-size:12px;color:var(--text-muted)">'+fmtCur(e.total)+'</div>' +
+  '</div>' +
+  '<div class="form-group"><label>Localidade de Entrega</label>' +
+    '<select class="input-select" id="atribLocalSel" onchange="onAtribLocalChange('+id+')">' +
+      '<option value="">-- Selecionar --</option>' + trajetoOpts +
+      '<option value="_outro">Outra localidade...</option>' +
+    '</select>' +
+  '</div>' +
+  '<div class="form-group" id="atribLocalExtraWrap" style="display:none"><label>Outra localidade</label><input type="text" class="input-text" id="atribLocalExtra" placeholder="Ex: Viseu"/></div>' +
+  '<div id="atribCamioesInfo" style="margin-top:8px;font-size:12px;color:var(--text-muted)"></div>';
+
+  // Simple modal using existing modalVer
+  document.getElementById('modalVerTitle').textContent = 'Atribuir Localidade';
+  document.getElementById('modalVerBody').innerHTML = html;
+  document.getElementById('modalFooter').innerHTML =
+    '<button class="btn btn-secondary" onclick="closeModal('modalVer')">Cancelar</button>' +
+    '<button class="btn btn-primary" onclick="confirmarAtribuirLocalidade('+id+')"><i class="fa-solid fa-location-dot"></i> Atribuir</button>';
+  openModal('modalVer');
+}
+
+function onAtribLocalChange(encId) {
+  var sel = document.getElementById('atribLocalSel');
+  var wrap = document.getElementById('atribLocalExtraWrap');
+  var info = document.getElementById('atribCamioesInfo');
+  if (!sel) return;
+  var val = sel.value;
+  if (wrap) wrap.style.display = val==='_outro'?'block':'none';
+  if (info && val && val!=='_outro') {
+    var cams = camioesDB.filter(function(c){return c.disponivel&&(c.trajeto===val||(c.trajetos_extra||[]).indexOf(val)>=0);});
+    info.innerHTML = cams.length ?
+      '<i class="fa-solid fa-truck" style="color:var(--primary)"></i> Camioes disponiveis: <strong>'+cams.map(function(c){return c.nome+(c.motorista?' ('+c.motorista+')':'');}).join(', ')+'</strong>' :
+      '<span style="color:var(--warning)"><i class="fa-solid fa-triangle-exclamation"></i> Nenhum camiao disponivel para este trajeto</span>';
+  } else if(info) info.innerHTML='';
+}
+
+function confirmarAtribuirLocalidade(id) {
+  var sel = document.getElementById('atribLocalSel');
+  var extra = document.getElementById('atribLocalExtra');
+  var val = sel ? sel.value : '';
+  var localidade = val==='_outro' ? ((extra||{}).value||'') : val;
+  if (!localidade) { showToast('Seleciona uma localidade.','error'); return; }
+  var enc = encomendas.find(function(e){return e.id===id;});
+  if (enc) enc.localidade = localidade;
+  closeModal('modalVer');
+  showToast('Localidade "'+localidade+'" atribuida a encomenda #'+fmtId(id),'success');
+  renderPendentes();
 }
 
 // ===== LANCADAS =====
@@ -632,7 +691,7 @@ function abrirLancar(id) {
     '</div>' +
 
     '<div class="form-group"><label>Tipo de Transporte *</label>' +
-      '<select class="input-select" id="transpTipo" onchange="onTranspChange()">' +
+      '<select class="input-select" id="transpTipo" onchange="onTranspChange();showCamiaoCarga()">' +
         '<option value="">-- Selecionar transporte --</option>' +
         '<optgroup label="Camiao Gialmar ('+camioesDB.filter(function(c){return c.disponivel;}).length+' disponiveis)">'+camOpts+'</optgroup>' +
         '<option value="camiao_externo">Camiao Externo</option>' +
@@ -640,6 +699,31 @@ function abrirLancar(id) {
       '</select>' +
     '</div>' +
     '<div class="form-group" id="transpDetalheWrap" style="display:none"><label>Detalhe / Referencia</label><input type="text" class="input-text" id="transpDetalhe" placeholder="Ex: Matricula, empresa transportadora..."/></div>' +
+    '<div id="camiaoCargaInfo" style="display:none;background:var(--bg);border-radius:8px;padding:12px;margin-bottom:12px;border-left:4px solid var(--primary)">' +
+      '<div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px">Capacidade do Camiao</div>' +
+      '<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;margin-bottom:6px">' +
+        '<span id="camiaoCargaNome"></span>' +
+        '<span id="camiaoCargaPct"></span>' +
+      '</div>' +
+      '<div style="height:10px;background:var(--bg2);border-radius:5px;overflow:hidden">' +
+        '<div id="camiaoCargaBar" style="height:100%;border-radius:5px;transition:width .3s"></div>' +
+      '</div>' +
+      '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-top:4px">' +
+        '<span id="camiaoCargaAtual"></span>' +
+        '<span id="camiaoCargaMax"></span>' +
+      '</div>' +
+    '</div>' +
+    '<div class="form-group"><label>Localidade de Entrega</label>' +
+      '<div style="display:flex;gap:8px">' +
+        '<select class="input-select" id="localidadeEntrega" onchange="onLocalidadeChange()">' +
+          '<option value="">-- Selecionar localidade --</option>' +
+          TRAJETOS.map(function(t){return '<option value="'+t+'">'+t+'</option>';}).join('') +
+          '<option value="_outro">Outra localidade...</option>' +
+        '</select>' +
+        '<input type="text" class="input-text" id="localidadeExtra" style="display:none" placeholder="Escreve a localidade..."/>' +
+      '</div>' +
+      '<div id="camiaosLocalidade" style="margin-top:6px;font-size:11px;color:var(--text-muted)"></div>' +
+    '</div>' +
     '<div class="form-group"><label>Observacoes</label><textarea class="input-textarea" id="lancarObs" placeholder="Observacoes sobre este lancamento..."></textarea></div>';
 
   openModal('modalLancar');
@@ -654,6 +738,61 @@ function calcLancarTotal(idx, qtdPedida) {
   if (el) {
     el.textContent = total.toFixed(1);
     el.style.color = total >= qtdPedida ? 'var(--success)' : 'var(--danger)';
+  }
+}
+
+function showCamiaoCarga() {
+  var val = (document.getElementById('transpTipo')||{}).value||'';
+  var info = document.getElementById('camiaoCargaInfo');
+  if (!info) return;
+  if (!val.startsWith('camiao_gialmar_')) { info.style.display='none'; return; }
+  var camId = parseInt(val.replace('camiao_gialmar_',''));
+  var cam = camioesDB.find(function(c){return c.id===camId;});
+  if (!cam) { info.style.display='none'; return; }
+  info.style.display = 'block';
+  var cargaMax = cam.cargaMax || 20000;
+  var cargaAtual = cam.cargaAtual || 0;
+  var pct = Math.min(100, Math.round(cargaAtual/cargaMax*100));
+  var pctColor = pct>=90?'#c62828':pct>=70?'#f57f17':'#2e7d32';
+  var nome = document.getElementById('camiaoCargaNome');
+  var pctEl = document.getElementById('camiaoCargaPct');
+  var bar = document.getElementById('camiaoCargaBar');
+  var atual = document.getElementById('camiaoCargaAtual');
+  var max = document.getElementById('camiaoCargaMax');
+  if(nome) nome.textContent = cam.nome + (cam.motorista?' — '+cam.motorista:'');
+  if(pctEl) { pctEl.textContent = pct+'% utilizado'; pctEl.style.color = pctColor; }
+  if(bar) { bar.style.width=pct+'%'; bar.style.background=pctColor; }
+  if(atual) atual.textContent = 'Atual: '+cargaAtual+' kg';
+  if(max) max.textContent = 'Max: '+cargaMax+' kg';
+}
+
+function onLocalidadeChange() {
+  var sel = document.getElementById('localidadeEntrega');
+  var extra = document.getElementById('localidadeExtra');
+  var info = document.getElementById('camiaosLocalidade');
+  if (!sel) return;
+  var val = sel.value;
+  if (extra) extra.style.display = val==='_outro' ? 'block' : 'none';
+  // Show which camioes have this trajeto
+  if (info && val && val!=='_outro') {
+    var matching = camioesDB.filter(function(c){
+      return c.disponivel && (c.trajeto===val || (c.trajetos_extra||[]).indexOf(val)>=0);
+    });
+    if (matching.length) {
+      info.innerHTML = '<i class="fa-solid fa-truck" style="color:var(--primary)"></i> Camioes com este trajeto: <strong>' +
+        matching.map(function(c){return c.nome+(c.motorista?' ('+c.motorista+')':'');}).join(', ') + '</strong>';
+      // Auto-select first available camiao with this trajeto if none selected
+      var transpSel = document.getElementById('transpTipo');
+      if (transpSel && !transpSel.value && matching.length) {
+        transpSel.value = 'camiao_gialmar_' + matching[0].id;
+        onTranspChange();
+        showCamiaoCarga();
+      }
+    } else {
+      info.innerHTML = '<span style="color:var(--warning)"><i class="fa-solid fa-triangle-exclamation"></i> Nenhum camiao disponivel para este trajeto</span>';
+    }
+  } else if (info) {
+    info.innerHTML = '';
   }
 }
 
@@ -694,14 +833,21 @@ async function confirmarLancamento() {
   localStorage.setItem('gestor_stock', JSON.stringify(stockDB));
 
   showToast('A lancar encomenda...','info');
+  var localSel = document.getElementById('localidadeEntrega');
+  var localExtra = document.getElementById('localidadeExtra');
+  var localidade = '';
+  if (localSel) {
+    localidade = localSel.value==='_outro' ? ((localExtra||{}).value||'') : localSel.value;
+  }
   await apiPost('updateEstado',{
     id:currentLancarId, estado:'lancada',
     transporte:tipoFinal, transpDetalhe:detalheFinal,
-    obs:obs, lancadoEm:new Date().toISOString(), lancadoPor:UTILIZADOR.nome
+    obs:obs, localidade:localidade,
+    lancadoEm:new Date().toISOString(), lancadoPor:UTILIZADOR.nome
   });
 
   var enc=encomendas.find(function(e){return e.id===currentLancarId;});
-  if(enc){enc.estado='lancada';enc.transporte=tipoFinal;enc.transpDetalhe=detalheFinal;enc.obs=obs;enc.lancadoEm=new Date().toISOString();}
+  if(enc){enc.estado='lancada';enc.transporte=tipoFinal;enc.transpDetalhe=detalheFinal;enc.obs=obs;enc.localidade=localidade;enc.lancadoEm=new Date().toISOString();}
 
   addLocalNotif('launched','Encomenda #'+fmtId(currentLancarId)+' lancada!',detalheFinal,currentLancarId);
   closeModal('modalLancar');
@@ -726,6 +872,7 @@ function verEncomenda(id) {
       (e.transporte?'<div class="info-item"><span class="label">Transporte</span><span class="value" style="font-weight:700;color:var(--blue)">'+transpNome(e.transporte,e.transpDetalhe)+'</span></div>':'') +
       (e.lancadoEm?'<div class="info-item"><span class="label">Lancado em</span><span class="value">'+fmtDate(e.lancadoEm)+'</span></div>':'') +
       (e.lancadoPor?'<div class="info-item"><span class="label">Lancado por</span><span class="value">'+e.lancadoPor+'</span></div>':'') +
+      (e.localidade?'<div class="info-item"><span class="label">Localidade</span><span class="value" style="color:var(--blue);font-weight:700"><i class="fa-solid fa-location-dot"></i> '+e.localidade+'</span></div>':'') +
     '</div>' +
     (e.obs?'<div style="background:var(--warning-light);padding:12px;border-radius:8px;margin-bottom:14px;border-left:4px solid var(--warning)"><div style="font-size:10px;font-weight:700;color:var(--warning);text-transform:uppercase;margin-bottom:4px">Observacoes</div><div style="font-size:13px">'+e.obs+'</div></div>':'') +
     '<div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px">Produtos</div>' +
