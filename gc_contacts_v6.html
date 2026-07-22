@@ -817,41 +817,66 @@ function ftOverlook(){
       '<td>'+(r[7]!==null&&r[7]!==undefined?fmtCur(r[7]):'<span style="color:#999">—</span>')+'</td>' +
     '</tr>';
   }).join('');
-  document.getElementById('modalDetalheTitle').textContent='Overlook EN/PT — '+uniq.length+' produtos';
-  document.getElementById('modalDetalheBody').innerHTML='<div style="margin-bottom:8px;font-size:12px;color:#999">Laranja = nome EN igual ao PT</div><table class="data-table" style="font-size:12px"><thead><tr><th>#</th><th>EN</th><th>PT</th><th>Preco</th></tr></thead><tbody>'+rows+'</tbody></table>';
-  document.getElementById('ftModalFooter').innerHTML='<button class="btn btn-outline" onclick="ftClose()">Fechar</button>';
+  document.getElementById('modalTitle').textContent='Overlook EN/PT — '+uniq.length+' produtos';
+  document.getElementById('modalBody').innerHTML='<div style="margin-bottom:8px;font-size:12px;color:#999">Laranja = nome EN igual ao PT</div><table class="data-table" style="font-size:12px"><thead><tr><th>#</th><th>EN</th><th>PT</th><th>Preco</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  document.getElementById('modalFooter').innerHTML='<button class="btn btn-outline" onclick="ftClose()">Fechar</button>';
   openModal('modalDetalhe');
 }
 
 function ftHistAll(){
   var all=[];
+  var data=ftData();
   Object.keys(ftHist).forEach(function(id){
-    var row=FT.find(function(r){return r[0]===parseInt(id);})||[];
-    var nome=(ftEdits[id]&&ftEdits[id].en)||row[1]||'#'+id;
-    ftHist[id].forEach(function(h){all.push(Object.assign({},h,{nome:nome}));});
+    var pid=parseInt(id);
+    var row=data.find(function(r){return r[0]===pid;})||FT.find(function(r){return r[0]===pid;})||[];
+    var nome=(ftEdits[pid]&&ftEdits[pid].en)||row[1]||'#'+id;
+    var precoAtual=row[7], paleteAtual=row[8];
+    ftHist[id].forEach(function(h){all.push(Object.assign({},h,{nome:nome,precoAtual:precoAtual,paleteAtual:paleteAtual}));});
   });
   all.sort(function(a,b){return new Date(b.d)-new Date(a.d);});
-  document.getElementById('modalDetalheTitle').textContent='Historico ('+all.length+')';
+  document.getElementById('modalTitle').textContent='Historico de Precos ('+all.length+' alteracoes)';
   var rows=all.map(function(h){
-    return '<tr><td style="font-size:11px;color:#999">'+new Date(h.d).toLocaleString('pt-PT')+'</td>' +
-      '<td style="font-weight:600">'+h.nome+'</td>' +
-      '<td style="font-size:11px">'+(h.f==='pr'?'Preco Unit.':'Preco Palete')+'</td>' +
+    var campo=h.f==='pr'?'Preco Unit.':'Preco Palete';
+    var atual=h.f==='pr'?h.precoAtual:h.paleteAtual;
+    return '<tr>' +
+      '<td style="font-size:11px;color:#999">'+new Date(h.d).toLocaleString('pt-PT')+'</td>' +
+      '<td style="font-weight:600;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+h.nome+'</td>' +
+      '<td style="font-size:11px">'+campo+'</td>' +
       '<td style="color:#c62828;text-decoration:line-through">'+(h.old!==null?fmtCur(h.old):'—')+'</td>' +
-      '<td style="color:#2e7d32;font-weight:700">'+(h.nv!==null?fmtCur(h.nv):'—')+'</td></tr>';
+      '<td style="color:#2e7d32;font-weight:700">'+(h.nv!==null?fmtCur(h.nv):'—')+'</td>' +
+      '<td style="color:#1565c0;font-weight:700;background:#e3f2fd;padding:4px 8px;border-radius:4px">'+(atual!==null&&atual!==undefined?fmtCur(atual):'—')+'</td>' +
+    '</tr>';
   }).join('');
-  document.getElementById('modalDetalheBody').innerHTML=all.length?
-    '<table class="data-table" style="font-size:12px"><thead><tr><th>Data</th><th>Produto</th><th>Campo</th><th>Anterior</th><th>Novo</th></tr></thead><tbody>'+rows+'</tbody></table>':
-    '<div style="text-align:center;padding:30px;color:#999">Sem historico ainda</div>';
-  document.getElementById('ftModalFooter').innerHTML='<button class="btn btn-outline" onclick="ftClose()">Fechar</button>'+(all.length?'<button class="btn btn-danger btn-sm" onclick="ftClearHist()"><i class="fa-solid fa-trash"></i> Limpar</button>':'');
+  document.getElementById('modalBody').innerHTML=all.length?
+    '<div style="margin-bottom:10px;font-size:12px;color:#666"><i class="fa-solid fa-info-circle" style="color:var(--primary)"></i> Azul = preco atual | Riscado = preco anterior | Verde = novo preco na altura</div>' +
+    '<table class="data-table" style="font-size:12px"><thead><tr><th>Data</th><th>Produto</th><th>Campo</th><th>Anterior</th><th>Novo</th><th>Atual</th></tr></thead><tbody>'+rows+'</tbody></table>':
+    '<div style="text-align:center;padding:30px;color:#999"><i class="fa-solid fa-clock-rotate-left" style="font-size:28px;display:block;margin-bottom:10px"></i>Sem historico ainda.<br><small>Edita um preco para criar o primeiro registo.</small></div>';
+  document.getElementById('modalFooter').innerHTML='<button class="btn btn-outline" onclick="ftClose()">Fechar</button>'+(all.length?'<button class="btn btn-danger btn-sm" onclick="ftClearHist()"><i class="fa-solid fa-trash"></i> Limpar</button>':'');
   openModal('modalDetalhe');
 }
 
 function ftHistOne(id){
-  var h=ftHist[id]||[], row=FT.find(function(r){return r[0]===id;})||[], nome=(ftEdits[id]&&ftEdits[id].en)||row[1]||'#'+id;
-  document.getElementById('modalDetalheTitle').textContent=nome;
-  var rows=h.map(function(e){return '<tr><td style="font-size:11px;color:#999">'+new Date(e.d).toLocaleString('pt-PT')+'</td><td style="font-size:11px">'+(e.f==='pr'?'Preco Unit.':'Preco Palete')+'</td><td style="color:#c62828;text-decoration:line-through">'+(e.old!==null?fmtCur(e.old):'—')+'</td><td style="color:#2e7d32;font-weight:700">'+(e.nv!==null?fmtCur(e.nv):'—')+'</td></tr>';}).join('');
-  document.getElementById('modalDetalheBody').innerHTML=h.length?'<table class="data-table" style="font-size:12px"><thead><tr><th>Data</th><th>Campo</th><th>Anterior</th><th>Novo</th></tr></thead><tbody>'+rows+'</tbody></table>':'<div style="text-align:center;padding:20px;color:#999">Sem historico</div>';
-  document.getElementById('ftModalFooter').innerHTML='<button class="btn btn-outline" onclick="ftClose()">Fechar</button>';
+  var h=ftHist[id]||[];
+  var data=ftData();
+  var row=data.find(function(r){return r[0]===id;})||FT.find(function(r){return r[0]===id;})||[];
+  var nome=(ftEdits[id]&&ftEdits[id].en)||row[1]||'#'+id;
+  var precoAtual=row[7], paleteAtual=row[8];
+  document.getElementById('modalTitle').textContent='Historico: '+nome;
+  var rows=h.map(function(e){
+    var atual=e.f==='pr'?precoAtual:paleteAtual;
+    return '<tr>' +
+      '<td style="font-size:11px;color:#999">'+new Date(e.d).toLocaleString('pt-PT')+'</td>' +
+      '<td style="font-size:11px">'+(e.f==='pr'?'Preco Unit.':'Preco Palete')+'</td>' +
+      '<td style="color:#c62828;text-decoration:line-through">'+(e.old!==null?fmtCur(e.old):'—')+'</td>' +
+      '<td style="color:#2e7d32;font-weight:700">'+(e.nv!==null?fmtCur(e.nv):'—')+'</td>' +
+      '<td style="color:#1565c0;font-weight:700;background:#e3f2fd;padding:4px 8px;border-radius:4px">'+(atual!==null&&atual!==undefined?fmtCur(atual):'—')+'</td>' +
+    '</tr>';
+  }).join('');
+  document.getElementById('modalBody').innerHTML=h.length?
+    '<div style="margin-bottom:8px;font-size:12px;color:#666">Azul = preco atual</div>' +
+    '<table class="data-table" style="font-size:12px"><thead><tr><th>Data</th><th>Campo</th><th>Anterior</th><th>Novo</th><th>Atual</th></tr></thead><tbody>'+rows+'</tbody></table>':
+    '<div style="text-align:center;padding:20px;color:#999">Sem historico para este produto</div>';
+  document.getElementById('modalFooter').innerHTML='<button class="btn btn-outline" onclick="ftClose()">Fechar</button>';
   openModal('modalDetalhe');
 }
 
