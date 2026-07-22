@@ -659,7 +659,8 @@ function renderPagination(containerId, currentPage, totalPages, onPageClick) {
 }
 
 function statusLabel(s){ return {ativo:'Ativo',em_estudo:'Em Estudo',por_validar:'Por Validar',inativo:'Inativo'}[s]||s; }
-function closeModal(){ document.getElementById('modalDetalhe').classList.remove('open'); }
+function openModal(id){ var el=document.getElementById(id); if(el) el.classList.add('open'); }
+function closeModal(id){ var el=document.getElementById(id||'modalDetalhe'); if(el) el.classList.remove('open'); }
 document.getElementById('modalDetalhe').addEventListener('click', function(e){ if(e.target===this) this.classList.remove('open'); });
 function showToast(msg,type) {
   type=type||'info';
