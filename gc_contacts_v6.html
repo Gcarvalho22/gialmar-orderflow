@@ -406,7 +406,7 @@ function navigateTo(page) {
   if (nav) nav.classList.add('active');
   var pg = document.getElementById('page-' + page);
   if (pg) pg.classList.add('active');
-  var titles = { dashboard:'Dashboard', todos:'Todos os Contactos', ativos:'Ativos', em_estudo:'Em Estudo', por_validar:'Por Validar', inativo:'Inativos', novo:'Novo Contacto' };
+  var titles = { dashboard:'Dashboard', todos:'Todos os Contactos', ativos:'Ativos', em_estudo:'Em Estudo', por_validar:'Por Validar', inativo:'Inativos', novo:'Novo Contacto', tabela:'Tabela de Precos' };
   document.getElementById('pageTitle').textContent = titles[page] || page;
   currentPage = 1;
   if (page === 'dashboard') updateDashboard();
@@ -416,6 +416,7 @@ function navigateTo(page) {
   if (page === 'por_validar') renderStatusPage('por_validar','filterValidar','bodyValidar','emptyValidar','paginValidar');
   if (page === 'inativo') renderStatusPage('inativo','filterInativo','bodyInativo','emptyInativo','paginInativo');
   if (page === 'novo') { clearForm(); document.getElementById('formTitle').textContent = 'Novo Contacto'; }
+  if (page === 'tabela') { ftPage=1; ftRender(); }
 }
 
 function updateDashboard() {
