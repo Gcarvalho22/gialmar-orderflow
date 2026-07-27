@@ -324,11 +324,7 @@ body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(
     </div>
     <div class="table-wrapper">
       <table class="data-table" id="ftTable">
-        <thead><tr>
-          <th>#</th><th>Produto (EN)</th><th>Produto (PT)</th>
-          <th>Origem</th><th>Calibre</th><th>Embalagem</th>
-          <th>Unidade</th><th>Preco Unit.</th><th>Preco Palete</th>
-        </tr></thead>
+        <thead id="ftThead"><tr></tr></thead>
         <tbody id="ftBody"></tbody>
       </table>
       <div class="table-empty" id="ftEmpty" style="display:none"><i class="fa-solid fa-fish"></i><p>Sem resultados</p></div>
@@ -790,7 +786,7 @@ function ftRender(){
   if(!pg.length){if(body)body.innerHTML='';if(empty)empty.style.display='block';var pag=document.getElementById('ftPagin');if(pag)pag.innerHTML='';return;}
   if(empty)empty.style.display='none';
 
-  // Update thead based on visible columns
+  // Get visible columns
   var cols = {
     num: document.getElementById('col_num') ? document.getElementById('col_num').checked : true,
     en: document.getElementById('col_en') ? document.getElementById('col_en').checked : true,
@@ -802,11 +798,32 @@ function ftRender(){
     pr: document.getElementById('col_pr') ? document.getElementById('col_pr').checked : true,
     pp: document.getElementById('col_pp') ? document.getElementById('col_pp').checked : true
   };
+  // Rebuild thead with only visible columns
   var thead = document.querySelector('#ftTable thead tr');
   if (thead) {
-    var ths = thead.querySelectorAll('th');
-    var colKeys = ['num','en','pt','orig','cal','emb','un','pr','pp'];
-    ths.forEach(function(th, i) { th.style.display = cols[colKeys[i]] ? '' : 'none'; });
+    var thLabels = {num:'#',en:'Produto (EN)',pt:'Produto (PT)',orig:'Origem',cal:'Calibre',emb:'Embalagem',un:'Unidade',pr:'Preco Unit.',pp:'Preco Palete'};
+    thead.innerHTML = Object.keys(cols).filter(function(k){return cols[k];}).map(function(k){
+      return '<th>'+thLabels[k]+'</th>';
+    }).join('');
+  }
+
+  // Update thead dynamically
+  var theadRow = document.querySelector('#ftThead tr');
+  if (theadRow) {
+    var colDefs = [
+      {key:'num', label:'#'},
+      {key:'en', label:'Produto (EN)'},
+      {key:'pt', label:'Produto (PT)'},
+      {key:'orig', label:'Origem'},
+      {key:'cal', label:'Calibre'},
+      {key:'emb', label:'Embalagem'},
+      {key:'un', label:'Unidade'},
+      {key:'pr', label:'Preco Unit.'},
+      {key:'pp', label:'Preco Palete'}
+    ];
+    theadRow.innerHTML = colDefs.filter(function(c){return cols[c.key];}).map(function(c){
+      return '<th>'+c.label+'</th>';
+    }).join('');
   }
 
   var html='';
