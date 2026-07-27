@@ -143,6 +143,21 @@ body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(
 .toast.success{background:var(--success)}.toast.error{background:var(--danger)}.toast.warning{background:var(--warning)}.toast.info{background:var(--primary)}
 @keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+@media print {
+  .sidebar, .topbar, .page-actions, #ftColSelector, .table-pagination,
+  .actions, .btn, .modal-overlay, .toast-container { display: none !important; }
+  .main-content { margin-left: 0 !important; }
+  .page { display: none !important; padding: 10px !important; }
+  .page.active { display: block !important; }
+  body { background: white !important; font-size: 11px !important; }
+  .card { box-shadow: none !important; border: 1px solid #ccc !important; }
+  .data-table th, .data-table td { padding: 5px 8px !important; font-size: 11px !important; }
+  .table-wrapper { box-shadow: none !important; border: 1px solid #ccc !important; }
+  #ftPrintHeader { display: block !important; margin-bottom: 12px; border-bottom: 2px solid #1565c0; padding-bottom: 8px; }
+}
+.btn-print { background: linear-gradient(135deg,#546e7a,#37474f); color: #fff; border: none; }
+#ftPrintHeader { display: none; }
 </style>
 </head>
 <body>
@@ -284,11 +299,31 @@ body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(
         <button class="btn btn-secondary btn-sm" id="ftEditBtn" onclick="ftToggleEdit()"><i class="fa-solid fa-pen"></i> Editar</button>
         <button class="btn btn-secondary btn-sm" onclick="ftHistAll()"><i class="fa-solid fa-clock-rotate-left"></i> Historico</button>
         <button class="btn btn-outline btn-sm" onclick="ftReset()" title="Repor originais"><i class="fa-solid fa-rotate-left"></i></button>
+        <button class="btn btn-primary btn-sm" onclick="ftAddProduct()"><i class="fa-solid fa-plus"></i> Adicionar Produto</button>
+        <button class="btn btn-print btn-sm" onclick="ftPrint()"><i class="fa-solid fa-print"></i> Imprimir / PDF</button>
       </div>
     </div>
+    <!-- Column selector -->
+    <div id="ftColSelector" style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <span style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.4px">Colunas visíveis:</span>
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="col_num" checked onchange="ftRender()"/> #</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="col_en" checked onchange="ftRender()"/> Nome EN</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="col_pt" checked onchange="ftRender()"/> Nome PT</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="col_orig" checked onchange="ftRender()"/> Origem</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="col_cal" onchange="ftRender()"/> Calibre</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="col_emb" checked onchange="ftRender()"/> Embalagem</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="col_un" checked onchange="ftRender()"/> Unidade</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="col_pr" checked onchange="ftRender()"/> Preco Unit.</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" id="col_pp" checked onchange="ftRender()"/> Preco Palete</label>
+    </div>
+    </div>
     <div class="table-info" id="ftInfo"></div>
+    <div id="ftPrintHeader">
+      <h2 style="color:#1565c0;margin-bottom:4px">Gialmar — Tabela de Precos</h2>
+      <p style="font-size:12px;color:#666">Impresso em: <span id="ftPrintDate"></span></p>
+    </div>
     <div class="table-wrapper">
-      <table class="data-table">
+      <table class="data-table" id="ftTable">
         <thead><tr>
           <th>#</th><th>Produto (EN)</th><th>Produto (PT)</th>
           <th>Origem</th><th>Calibre</th><th>Embalagem</th>
@@ -307,6 +342,37 @@ body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(
     <div class="modal-header"><h3><i class="fa-solid fa-building"></i> <span id="modalTitle">Detalhe</span></h3><button class="modal-close" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button></div>
     <div class="modal-body" id="modalBody"></div>
     <div class="modal-footer" id="modalFooter"></div>
+  </div>
+</div>
+<div class="modal-overlay" id="modalAddProduct">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-fish"></i> <span id="addProdTitle">Novo Produto</span></h3>
+      <button class="modal-close" onclick="closeModal('modalAddProduct')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="addProdId"/>
+      <div style="display:flex;gap:12px;margin-bottom:12px">
+        <div style="flex:1"><label style="font-size:11px;font-weight:700;color:#4a6570;text-transform:uppercase;display:block;margin-bottom:4px">Nome EN *</label><input type="text" class="input-text" id="addProdEN" placeholder="Ex: Tuna loin"/></div>
+        <div style="flex:1"><label style="font-size:11px;font-weight:700;color:#4a6570;text-transform:uppercase;display:block;margin-bottom:4px">Nome PT</label><input type="text" class="input-text" id="addProdPT" placeholder="Ex: Atum lombo"/></div>
+      </div>
+      <div style="display:flex;gap:12px;margin-bottom:12px">
+        <div style="flex:1"><label style="font-size:11px;font-weight:700;color:#4a6570;text-transform:uppercase;display:block;margin-bottom:4px">Origem</label><input type="text" class="input-text" id="addProdOrig" placeholder="Ex: Espanha"/></div>
+        <div style="flex:1"><label style="font-size:11px;font-weight:700;color:#4a6570;text-transform:uppercase;display:block;margin-bottom:4px">Calibre</label><input type="text" class="input-text" id="addProdCal" placeholder="Ex: 500/900g"/></div>
+      </div>
+      <div style="margin-bottom:12px"><label style="font-size:11px;font-weight:700;color:#4a6570;text-transform:uppercase;display:block;margin-bottom:4px">Embalagem</label><input type="text" class="input-text" id="addProdEmb" placeholder="Ex: Box 10 kg Net Wt"/></div>
+      <div style="display:flex;gap:12px;margin-bottom:12px">
+        <div style="flex:1"><label style="font-size:11px;font-weight:700;color:#4a6570;text-transform:uppercase;display:block;margin-bottom:4px">Unidade</label>
+          <select class="input-text" id="addProdUn"><option>KG</option><option>UN</option><option>KG Drained wt</option><option>L</option><option>cx</option></select>
+        </div>
+        <div style="flex:1"><label style="font-size:11px;font-weight:700;color:#4a6570;text-transform:uppercase;display:block;margin-bottom:4px">Preco Unit. (EUR)</label><input type="number" class="input-text" id="addProdPr" placeholder="0.00" step="0.01" min="0"/></div>
+        <div style="flex:1"><label style="font-size:11px;font-weight:700;color:#4a6570;text-transform:uppercase;display:block;margin-bottom:4px">Preco Palete (EUR)</label><input type="number" class="input-text" id="addProdPp" placeholder="0.00" step="0.01" min="0"/></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalAddProduct')">Cancelar</button>
+      <button class="btn btn-primary" onclick="ftSaveProduct()"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>
+    </div>
   </div>
 </div>
 <div class="toast-container" id="toastContainer"></div>
@@ -724,6 +790,25 @@ function ftRender(){
   if(!pg.length){if(body)body.innerHTML='';if(empty)empty.style.display='block';var pag=document.getElementById('ftPagin');if(pag)pag.innerHTML='';return;}
   if(empty)empty.style.display='none';
 
+  // Update thead based on visible columns
+  var cols = {
+    num: document.getElementById('col_num') ? document.getElementById('col_num').checked : true,
+    en: document.getElementById('col_en') ? document.getElementById('col_en').checked : true,
+    pt: document.getElementById('col_pt') ? document.getElementById('col_pt').checked : true,
+    orig: document.getElementById('col_orig') ? document.getElementById('col_orig').checked : true,
+    cal: document.getElementById('col_cal') ? document.getElementById('col_cal').checked : false,
+    emb: document.getElementById('col_emb') ? document.getElementById('col_emb').checked : true,
+    un: document.getElementById('col_un') ? document.getElementById('col_un').checked : true,
+    pr: document.getElementById('col_pr') ? document.getElementById('col_pr').checked : true,
+    pp: document.getElementById('col_pp') ? document.getElementById('col_pp').checked : true
+  };
+  var thead = document.querySelector('#ftTable thead tr');
+  if (thead) {
+    var ths = thead.querySelectorAll('th');
+    var colKeys = ['num','en','pt','orig','cal','emb','un','pr','pp'];
+    ths.forEach(function(th, i) { th.style.display = cols[colKeys[i]] ? '' : 'none'; });
+  }
+
   var html='';
   for(var i=0;i<pg.length;i++){
     var r=pg[i];
@@ -768,14 +853,18 @@ function ftRender(){
         if(!ftEdits[id])ftEdits[id]={};
         if(f==='pr'||f==='pp'){
           var nv=v!==''?parseFloat(v):null;
-          var old=ftEdits[id][f]!==undefined?ftEdits[id][f]:(FT.find(function(r){return r[0]===id;})||[])[f==='pr'?7:8];
-          if(old!==nv&&old!==null&&old!==undefined){
+          var origRow=FT.find(function(r){return r[0]===id;})||[];
+          var oldVal=ftEdits[id][f]!==undefined?ftEdits[id][f]:origRow[f==='pr'?7:8];
+          if(oldVal!==nv&&oldVal!==null&&oldVal!==undefined){
             if(!ftHist[id])ftHist[id]=[];
-            ftHist[id].unshift({f:f,old:old,nv:nv,d:new Date().toISOString()});
+            ftHist[id].unshift({f:f,old:oldVal,nv:nv,d:new Date().toISOString()});
             localStorage.setItem('fth',JSON.stringify(ftHist));
           }
           ftEdits[id][f]=nv;
-        }else{ftEdits[id][f]=v;}
+        }else{
+          // Text fields: en, pt, orig, cal, emb, un
+          ftEdits[id][f]=v;
+        }
       });
     });
   }
@@ -879,6 +968,329 @@ function ftHistOne(id){
     '<div style="text-align:center;padding:20px;color:#999">Sem historico para este produto</div>';
   document.getElementById('modalFooter').innerHTML='<button class="btn btn-outline" onclick="ftClose()">Fechar</button>';
   openModal('modalDetalhe');
+}
+
+function ftAddProduct(){
+  document.getElementById('addProdTitle').textContent='Novo Produto';
+  document.getElementById('addProdId').value='';
+  ['addProdEN','addProdPT','addProdOrig','addProdCal','addProdEmb','addProdPr','addProdPp'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('addProdUn').value='KG';
+  openModal('modalAddProduct');
+}
+
+function ftEditOne(id){
+  var data=ftData();
+  var r=data.find(function(x){return x[0]===id;})||[];
+  document.getElementById('addProdTitle').textContent='Editar Produto';
+  document.getElementById('addProdId').value=id;
+  document.getElementById('addProdEN').value=r[1]||'';
+  document.getElementById('addProdPT').value=r[2]||'';
+  document.getElementById('addProdOrig').value=r[3]||'';
+  document.getElementById('addProdCal').value=r[4]||'';
+  document.getElementById('addProdEmb').value=r[5]||'';
+  document.getElementById('addProdUn').value=r[6]||'KG';
+  document.getElementById('addProdPr').value=r[7]!==null&&r[7]!==undefined?r[7]:'';
+  document.getElementById('addProdPp').value=r[8]!==null&&r[8]!==undefined?r[8]:'';
+  openModal('modalAddProduct');
+}
+
+function ftSaveProduct(){
+  var en=document.getElementById('addProdEN').value.trim();
+  if(!en){showToast('O nome EN e obrigatorio.','error');return;}
+  var id=document.getElementById('addProdId').value;
+  var pr=document.getElementById('addProdPr').value;
+  var pp=document.getElementById('addProdPp').value;
+  if(id){
+    // Edit existing
+    var pid=parseInt(id);
+    if(!ftEdits[pid])ftEdits[pid]={};
+    ftEdits[pid].en=en;
+    ftEdits[pid].pt=document.getElementById('addProdPT').value.trim();
+    ftEdits[pid].orig=document.getElementById('addProdOrig').value.trim();
+    ftEdits[pid].cal=document.getElementById('addProdCal').value.trim();
+    ftEdits[pid].emb=document.getElementById('addProdEmb').value.trim();
+    ftEdits[pid].un=document.getElementById('addProdUn').value;
+    if(pr!==''){
+      var nv=parseFloat(pr);
+      var origRow=FT.find(function(r){return r[0]===pid;})||[];
+      var oldVal=ftEdits[pid].pr!==undefined?ftEdits[pid].pr:origRow[7];
+      if(oldVal!==nv&&oldVal!==null&&oldVal!==undefined){
+        if(!ftHist[pid])ftHist[pid]=[];
+        ftHist[pid].unshift({f:'pr',old:oldVal,nv:nv,d:new Date().toISOString()});
+        localStorage.setItem('fth',JSON.stringify(ftHist));
+      }
+      ftEdits[pid].pr=nv;
+    }
+    if(pp!==''){ftEdits[pid].pp=parseFloat(pp);}
+    showToast('Produto atualizado!','success');
+  } else {
+    // New product
+    var newId = Date.now();
+    var newRow=[newId,en,document.getElementById('addProdPT').value.trim(),
+      document.getElementById('addProdOrig').value.trim(),
+      document.getElementById('addProdCal').value.trim(),
+      document.getElementById('addProdEmb').value.trim(),
+      document.getElementById('addProdUn').value,
+      pr!==''?parseFloat(pr):null,
+      pp!==''?parseFloat(pp):null];
+    FT.push(newRow);
+    showToast('Produto adicionado!','success');
+  }
+  localStorage.setItem('fte',JSON.stringify(ftEdits));
+  closeModal('modalAddProduct');
+  ftRender();
+}
+
+function ftPrint(){
+  // Set print date
+  var pd = document.getElementById('ftPrintDate');
+  if (pd) pd.textContent = new Date().toLocaleString('pt-PT');
+  // Save current page size, show all
+  var oldSize = ftSize;
+  ftSize = 9999;
+  ftPage = 1;
+  ftRender();
+  setTimeout(function(){
+    window.print();
+    // Restore
+    ftSize = oldSize;
+    ftPage = 1;
+    ftRender();
+  }, 500);
+}
+
+function ftClearHist(){if(!confirm('Limpar historico?'))return;ftHist={};localStorage.removeItem('fth');showToast('Limpo!','warning');closeModal('modalDetalhe');}
+
+function ftClose(){closeModal('modalDetalhe');}
+document.addEventListener('DOMContentLoaded',function(){ftLoad();});
+</script>
+</body>
+</html>      rows += '<tr style="'+ed+'">'+
+        (cols.num?'<td style="color:#999;font-size:11px">'+(st+i+1)+'</td>':'')+
+        (cols.en?'<td><strong style="color:var(--primary)">'+en+'</strong>'+hb+'</td>':'')+
+        (cols.pt?'<td style="font-size:11px;color:#666">'+pt+'</td>':'')+
+        (cols.orig?'<td style="font-size:11px;color:#666">'+(orig||'—')+'</td>':'')+
+        (cols.cal?'<td style="font-size:11px">'+(cal||'—')+'</td>':'')+
+        (cols.emb?'<td style="font-size:11px;color:#666">'+(emb||'—')+'</td>':'')+
+        (cols.un?'<td><code style="background:#f0f4f5;padding:2px 5px;border-radius:3px;font-size:11px">'+un+'</code></td>':'')+
+        (cols.pr?'<td>'+(hasP?'<strong style="color:var(--primary)">'+fmtCur(pr)+'</strong>':'<span style="color:#999">—</span>')+'</td>':'')+
+        (cols.pp?'<td>'+(hasPP?'<span style="color:#666">'+fmtCur(pp)+'</span>':'—')+'</td>':'')+
+      '</tr>';
+    }
+  }
+  if(body)body.innerHTML=html;
+
+  if(ftEdit&&body){
+    body.querySelectorAll('input[data-id]').forEach(function(el){
+      el.addEventListener('change',function(){
+        var id=parseInt(this.dataset.id), f=this.dataset.f, v=this.value;
+        if(!ftEdits[id])ftEdits[id]={};
+        if(f==='pr'||f==='pp'){
+          var nv=v!==''?parseFloat(v):null;
+          var origRow=FT.find(function(r){return r[0]===id;})||[];
+          var oldVal=ftEdits[id][f]!==undefined?ftEdits[id][f]:origRow[f==='pr'?7:8];
+          if(oldVal!==nv&&oldVal!==null&&oldVal!==undefined){
+            if(!ftHist[id])ftHist[id]=[];
+            ftHist[id].unshift({f:f,old:oldVal,nv:nv,d:new Date().toISOString()});
+            localStorage.setItem('fth',JSON.stringify(ftHist));
+          }
+          ftEdits[id][f]=nv;
+        }else{
+          // Text fields: en, pt, orig, cal, emb, un
+          ftEdits[id][f]=v;
+        }
+      });
+    });
+  }
+
+  // Pagination
+  var pag=document.getElementById('ftPagin');
+  if(!pag)return;
+  if(tp<=1){pag.innerHTML='';return;}
+  var ph='<button class="page-btn" '+(ftPage===1?'disabled':'')+' onclick="ftGo('+(ftPage-1)+')">&#8249;</button>';
+  var ps=Math.max(1,ftPage-2),pe=Math.min(tp,ftPage+2);
+  if(ps>1)ph+='<button class="page-btn" onclick="ftGo(1)">1</button>'+(ps>2?'<span style="padding:0 4px">…</span>':'');
+  for(var p=ps;p<=pe;p++)ph+='<button class="page-btn '+(p===ftPage?'active':'')+'" onclick="ftGo('+p+')">'+p+'</button>';
+  if(pe<tp)ph+=(pe<tp-1?'<span style="padding:0 4px">…</span>':'')+'<button class="page-btn" onclick="ftGo('+tp+')">'+tp+'</button>';
+  ph+='<button class="page-btn" '+(ftPage===tp?'disabled':'')+' onclick="ftGo('+(ftPage+1)+')">&#8250;</button>';
+  ph+='<span style="font-size:12px;color:#999;margin-left:8px">'+ftPage+'/'+tp+'</span>';
+  pag.innerHTML=ph;
+}
+
+function ftGo(p){ftPage=p;ftRender();window.scrollTo({top:0,behavior:'smooth'});}
+
+function ftToggleEdit(){
+  ftEdit=!ftEdit;
+  var btn=document.getElementById('ftEditBtn');
+  if(btn){btn.innerHTML=ftEdit?'<i class="fa-solid fa-floppy-disk"></i> Guardar':'<i class="fa-solid fa-pen"></i> Editar';btn.className=ftEdit?'btn btn-success btn-sm':'btn btn-secondary btn-sm';}
+  if(!ftEdit){localStorage.setItem('fte',JSON.stringify(ftEdits));showToast('Guardado! '+Object.keys(ftEdits).length+' editado(s)','success');}
+  ftRender();
+}
+
+function ftReset(){if(!confirm('Repor precos originais?'))return;ftEdits={};localStorage.removeItem('fte');showToast('Repostos!','warning');ftRender();}
+
+function ftOverlook(){
+  var data=ftData(), seen={}, uniq=[];
+  data.forEach(function(r){if(!seen[r[2]]){seen[r[2]]=1;uniq.push(r);}});
+  var rows=uniq.map(function(r,i){
+    var same=(r[1]||'').toLowerCase()===(r[2]||'').toLowerCase();
+    return '<tr style="'+(same?'background:#fff3e0;':'')+'">' +
+      '<td style="color:#999;font-size:11px">'+(i+1)+'</td>' +
+      '<td><strong style="color:var(--primary)">'+(r[1]||'')+'</strong></td>' +
+      '<td style="color:#666">'+(r[2]||'')+'</td>' +
+      '<td>'+(r[7]!==null&&r[7]!==undefined?fmtCur(r[7]):'<span style="color:#999">—</span>')+'</td>' +
+    '</tr>';
+  }).join('');
+  document.getElementById('modalTitle').textContent='Overlook EN/PT — '+uniq.length+' produtos';
+  document.getElementById('modalBody').innerHTML='<div style="margin-bottom:8px;font-size:12px;color:#999">Laranja = nome EN igual ao PT</div><table class="data-table" style="font-size:12px"><thead><tr><th>#</th><th>EN</th><th>PT</th><th>Preco</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  document.getElementById('modalFooter').innerHTML='<button class="btn btn-outline" onclick="ftClose()">Fechar</button>';
+  openModal('modalDetalhe');
+}
+
+function ftHistAll(){
+  var all=[];
+  var data=ftData();
+  Object.keys(ftHist).forEach(function(id){
+    var pid=parseInt(id);
+    var row=data.find(function(r){return r[0]===pid;})||FT.find(function(r){return r[0]===pid;})||[];
+    var nome=(ftEdits[pid]&&ftEdits[pid].en)||row[1]||'#'+id;
+    var precoAtual=row[7], paleteAtual=row[8];
+    ftHist[id].forEach(function(h){all.push(Object.assign({},h,{nome:nome,precoAtual:precoAtual,paleteAtual:paleteAtual}));});
+  });
+  all.sort(function(a,b){return new Date(b.d)-new Date(a.d);});
+  document.getElementById('modalTitle').textContent='Historico de Precos ('+all.length+' alteracoes)';
+  var rows=all.map(function(h){
+    var campo=h.f==='pr'?'Preco Unit.':'Preco Palete';
+    var atual=h.f==='pr'?h.precoAtual:h.paleteAtual;
+    return '<tr>' +
+      '<td style="font-size:11px;color:#999">'+new Date(h.d).toLocaleString('pt-PT')+'</td>' +
+      '<td style="font-weight:600;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+h.nome+'</td>' +
+      '<td style="font-size:11px">'+campo+'</td>' +
+      '<td style="color:#c62828;text-decoration:line-through">'+(h.old!==null?fmtCur(h.old):'—')+'</td>' +
+      '<td style="color:#2e7d32;font-weight:700">'+(h.nv!==null?fmtCur(h.nv):'—')+'</td>' +
+      '<td style="color:#1565c0;font-weight:700;background:#e3f2fd;padding:4px 8px;border-radius:4px">'+(atual!==null&&atual!==undefined?fmtCur(atual):'—')+'</td>' +
+    '</tr>';
+  }).join('');
+  document.getElementById('modalBody').innerHTML=all.length?
+    '<div style="margin-bottom:10px;font-size:12px;color:#666"><i class="fa-solid fa-info-circle" style="color:var(--primary)"></i> Azul = preco atual | Riscado = preco anterior | Verde = novo preco na altura</div>' +
+    '<table class="data-table" style="font-size:12px"><thead><tr><th>Data</th><th>Produto</th><th>Campo</th><th>Anterior</th><th>Novo</th><th>Atual</th></tr></thead><tbody>'+rows+'</tbody></table>':
+    '<div style="text-align:center;padding:30px;color:#999"><i class="fa-solid fa-clock-rotate-left" style="font-size:28px;display:block;margin-bottom:10px"></i>Sem historico ainda.<br><small>Edita um preco para criar o primeiro registo.</small></div>';
+  document.getElementById('modalFooter').innerHTML='<button class="btn btn-outline" onclick="ftClose()">Fechar</button>'+(all.length?'<button class="btn btn-danger btn-sm" onclick="ftClearHist()"><i class="fa-solid fa-trash"></i> Limpar</button>':'');
+  openModal('modalDetalhe');
+}
+
+function ftHistOne(id){
+  var h=ftHist[id]||[];
+  var data=ftData();
+  var row=data.find(function(r){return r[0]===id;})||FT.find(function(r){return r[0]===id;})||[];
+  var nome=(ftEdits[id]&&ftEdits[id].en)||row[1]||'#'+id;
+  var precoAtual=row[7], paleteAtual=row[8];
+  document.getElementById('modalTitle').textContent='Historico: '+nome;
+  var rows=h.map(function(e){
+    var atual=e.f==='pr'?precoAtual:paleteAtual;
+    return '<tr>' +
+      '<td style="font-size:11px;color:#999">'+new Date(e.d).toLocaleString('pt-PT')+'</td>' +
+      '<td style="font-size:11px">'+(e.f==='pr'?'Preco Unit.':'Preco Palete')+'</td>' +
+      '<td style="color:#c62828;text-decoration:line-through">'+(e.old!==null?fmtCur(e.old):'—')+'</td>' +
+      '<td style="color:#2e7d32;font-weight:700">'+(e.nv!==null?fmtCur(e.nv):'—')+'</td>' +
+      '<td style="color:#1565c0;font-weight:700;background:#e3f2fd;padding:4px 8px;border-radius:4px">'+(atual!==null&&atual!==undefined?fmtCur(atual):'—')+'</td>' +
+    '</tr>';
+  }).join('');
+  document.getElementById('modalBody').innerHTML=h.length?
+    '<div style="margin-bottom:8px;font-size:12px;color:#666">Azul = preco atual</div>' +
+    '<table class="data-table" style="font-size:12px"><thead><tr><th>Data</th><th>Campo</th><th>Anterior</th><th>Novo</th><th>Atual</th></tr></thead><tbody>'+rows+'</tbody></table>':
+    '<div style="text-align:center;padding:20px;color:#999">Sem historico para este produto</div>';
+  document.getElementById('modalFooter').innerHTML='<button class="btn btn-outline" onclick="ftClose()">Fechar</button>';
+  openModal('modalDetalhe');
+}
+
+function ftAddProduct(){
+  document.getElementById('addProdTitle').textContent='Novo Produto';
+  document.getElementById('addProdId').value='';
+  ['addProdEN','addProdPT','addProdOrig','addProdCal','addProdEmb','addProdPr','addProdPp'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('addProdUn').value='KG';
+  openModal('modalAddProduct');
+}
+
+function ftEditOne(id){
+  var data=ftData();
+  var r=data.find(function(x){return x[0]===id;})||[];
+  document.getElementById('addProdTitle').textContent='Editar Produto';
+  document.getElementById('addProdId').value=id;
+  document.getElementById('addProdEN').value=r[1]||'';
+  document.getElementById('addProdPT').value=r[2]||'';
+  document.getElementById('addProdOrig').value=r[3]||'';
+  document.getElementById('addProdCal').value=r[4]||'';
+  document.getElementById('addProdEmb').value=r[5]||'';
+  document.getElementById('addProdUn').value=r[6]||'KG';
+  document.getElementById('addProdPr').value=r[7]!==null&&r[7]!==undefined?r[7]:'';
+  document.getElementById('addProdPp').value=r[8]!==null&&r[8]!==undefined?r[8]:'';
+  openModal('modalAddProduct');
+}
+
+function ftSaveProduct(){
+  var en=document.getElementById('addProdEN').value.trim();
+  if(!en){showToast('O nome EN e obrigatorio.','error');return;}
+  var id=document.getElementById('addProdId').value;
+  var pr=document.getElementById('addProdPr').value;
+  var pp=document.getElementById('addProdPp').value;
+  if(id){
+    // Edit existing
+    var pid=parseInt(id);
+    if(!ftEdits[pid])ftEdits[pid]={};
+    ftEdits[pid].en=en;
+    ftEdits[pid].pt=document.getElementById('addProdPT').value.trim();
+    ftEdits[pid].orig=document.getElementById('addProdOrig').value.trim();
+    ftEdits[pid].cal=document.getElementById('addProdCal').value.trim();
+    ftEdits[pid].emb=document.getElementById('addProdEmb').value.trim();
+    ftEdits[pid].un=document.getElementById('addProdUn').value;
+    if(pr!==''){
+      var nv=parseFloat(pr);
+      var origRow=FT.find(function(r){return r[0]===pid;})||[];
+      var oldVal=ftEdits[pid].pr!==undefined?ftEdits[pid].pr:origRow[7];
+      if(oldVal!==nv&&oldVal!==null&&oldVal!==undefined){
+        if(!ftHist[pid])ftHist[pid]=[];
+        ftHist[pid].unshift({f:'pr',old:oldVal,nv:nv,d:new Date().toISOString()});
+        localStorage.setItem('fth',JSON.stringify(ftHist));
+      }
+      ftEdits[pid].pr=nv;
+    }
+    if(pp!==''){ftEdits[pid].pp=parseFloat(pp);}
+    showToast('Produto atualizado!','success');
+  } else {
+    // New product
+    var newId = Date.now();
+    var newRow=[newId,en,document.getElementById('addProdPT').value.trim(),
+      document.getElementById('addProdOrig').value.trim(),
+      document.getElementById('addProdCal').value.trim(),
+      document.getElementById('addProdEmb').value.trim(),
+      document.getElementById('addProdUn').value,
+      pr!==''?parseFloat(pr):null,
+      pp!==''?parseFloat(pp):null];
+    FT.push(newRow);
+    showToast('Produto adicionado!','success');
+  }
+  localStorage.setItem('fte',JSON.stringify(ftEdits));
+  closeModal('modalAddProduct');
+  ftRender();
+}
+
+function ftPrint(){
+  // Set print date
+  var pd = document.getElementById('ftPrintDate');
+  if (pd) pd.textContent = new Date().toLocaleString('pt-PT');
+  // Save current page size, show all
+  var oldSize = ftSize;
+  ftSize = 9999;
+  ftPage = 1;
+  ftRender();
+  setTimeout(function(){
+    window.print();
+    // Restore
+    ftSize = oldSize;
+    ftPage = 1;
+    ftRender();
+  }, 500);
 }
 
 function ftClearHist(){if(!confirm('Limpar historico?'))return;ftHist={};localStorage.removeItem('fth');showToast('Limpo!','warning');closeModal('modalDetalhe');}
