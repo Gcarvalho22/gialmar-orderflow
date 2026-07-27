@@ -760,7 +760,22 @@ function ftRender(){
   var cat=(document.getElementById('ftCat')||{}).value||'';
   var disp=(document.getElementById('ftDisp')||{}).value||'';
 
-  // Categories
+  // Get visible columns
+  function gc(id,def){var el=document.getElementById(id);return el?el.checked:def;}
+  var cols={num:gc('col_num',true),en:gc('col_en',true),pt:gc('col_pt',true),
+    orig:gc('col_orig',true),cal:gc('col_cal',false),emb:gc('col_emb',true),
+    un:gc('col_un',true),pr:gc('col_pr',true),pp:gc('col_pp',true)};
+
+  // Update thead
+  var theadRow=document.querySelector('#ftThead tr');
+  if(theadRow){
+    var colDefs=[{k:'num',l:'#'},{k:'en',l:'Produto (EN)'},{k:'pt',l:'Produto (PT)'},
+      {k:'orig',l:'Origem'},{k:'cal',l:'Calibre'},{k:'emb',l:'Embalagem'},
+      {k:'un',l:'Unidade'},{k:'pr',l:'Preco Unit.'},{k:'pp',l:'Preco Palete'}];
+    theadRow.innerHTML=colDefs.filter(function(c){return cols[c.k];}).map(function(c){return '<th>'+c.l+'</th>';}).join('');
+  }
+
+  // Build categories
   var cats={};
   data.forEach(function(r){var c=(r[1]||'').split(' ').slice(0,2).join(' ');cats[c]=1;});
   var cs=document.getElementById('ftCat');
@@ -783,88 +798,46 @@ function ftRender(){
   if(info)info.textContent='A mostrar '+pg.length+' de '+tot+' produto(s) | Pag. '+ftPage+'/'+tp;
 
   var body=document.getElementById('ftBody'), empty=document.getElementById('ftEmpty');
-  if(!pg.length){if(body)body.innerHTML='';if(empty)empty.style.display='block';var pag=document.getElementById('ftPagin');if(pag)pag.innerHTML='';return;}
+  if(!pg.length){if(body)body.innerHTML='';if(empty)empty.style.display='block';
+    var pag=document.getElementById('ftPagin');if(pag)pag.innerHTML='';return;}
   if(empty)empty.style.display='none';
-
-  // Get visible columns
-  var cols = {
-    num: document.getElementById('col_num') ? document.getElementById('col_num').checked : true,
-    en: document.getElementById('col_en') ? document.getElementById('col_en').checked : true,
-    pt: document.getElementById('col_pt') ? document.getElementById('col_pt').checked : true,
-    orig: document.getElementById('col_orig') ? document.getElementById('col_orig').checked : true,
-    cal: document.getElementById('col_cal') ? document.getElementById('col_cal').checked : false,
-    emb: document.getElementById('col_emb') ? document.getElementById('col_emb').checked : true,
-    un: document.getElementById('col_un') ? document.getElementById('col_un').checked : true,
-    pr: document.getElementById('col_pr') ? document.getElementById('col_pr').checked : true,
-    pp: document.getElementById('col_pp') ? document.getElementById('col_pp').checked : true
-  };
-  // Rebuild thead with only visible columns
-  var thead = document.querySelector('#ftTable thead tr');
-  if (thead) {
-    var thLabels = {num:'#',en:'Produto (EN)',pt:'Produto (PT)',orig:'Origem',cal:'Calibre',emb:'Embalagem',un:'Unidade',pr:'Preco Unit.',pp:'Preco Palete'};
-    thead.innerHTML = Object.keys(cols).filter(function(k){return cols[k];}).map(function(k){
-      return '<th>'+thLabels[k]+'</th>';
-    }).join('');
-  }
-
-  // Update thead dynamically
-  var theadRow = document.querySelector('#ftThead tr');
-  if (theadRow) {
-    var colDefs = [
-      {key:'num', label:'#'},
-      {key:'en', label:'Produto (EN)'},
-      {key:'pt', label:'Produto (PT)'},
-      {key:'orig', label:'Origem'},
-      {key:'cal', label:'Calibre'},
-      {key:'emb', label:'Embalagem'},
-      {key:'un', label:'Unidade'},
-      {key:'pr', label:'Preco Unit.'},
-      {key:'pp', label:'Preco Palete'}
-    ];
-    theadRow.innerHTML = colDefs.filter(function(c){return cols[c.key];}).map(function(c){
-      return '<th>'+c.label+'</th>';
-    }).join('');
-  }
 
   var html='';
   for(var i=0;i<pg.length;i++){
     var r=pg[i];
     var id=r[0],en=r[1]||'',pt=r[2]||'',orig=r[3]||'',cal=r[4]||'',emb=r[5]||'',un=r[6]||'KG',pr=r[7],pp=r[8];
-    var hasP=pr!==null&&pr!==undefined;
-    var hasPP=pp!==null&&pp!==undefined;
+    var hasP=pr!==null&&pr!==undefined, hasPP=pp!==null&&pp!==undefined;
     var ed=ftEdits[id]?'background:#fffde7;':'';
     var hc=ftHist[id]?ftHist[id].length:0;
     var hb=hc>0?'<span style="background:#e3f2fd;color:#1565c0;padding:1px 5px;border-radius:10px;font-size:10px;margin-left:4px;cursor:pointer" onclick="ftHistOne('+id+')">'+hc+'h</span>':'';
+
+    var cells=[];
+    if(cols.num)cells.push('<td style="color:#999;font-size:11px">'+(st+i+1)+'</td>');
     if(ftEdit){
-      html+='<tr style="'+ed+'">'+
-        '<td style="color:#999;font-size:11px">'+(st+i+1)+'</td>'+
-        '<td><input type="text" class="stock-input" style="width:180px;font-weight:600;color:var(--primary)" data-id="'+id+'" data-f="en" value="'+en.replace(/"/g,'&quot;')+'"/></td>'+
-        '<td style="font-size:11px;color:#666">'+pt+'</td>'+
-        '<td style="font-size:11px;color:#666">'+(orig||'—')+'</td>'+
-        '<td style="font-size:11px">'+(cal||'—')+'</td>'+
-        '<td style="font-size:11px;color:#666">'+(emb||'—')+'</td>'+
-        '<td><code style="background:#f0f4f5;padding:2px 5px;border-radius:3px;font-size:11px">'+un+'</code></td>'+
-        '<td><input type="number" class="stock-input" style="width:75px;font-weight:700;color:var(--primary);border-color:var(--primary)" data-id="'+id+'" data-f="pr" value="'+(hasP?pr:'')+'" step="0.01" min="0" placeholder="—"/></td>'+
-        '<td><input type="number" class="stock-input" style="width:75px;border-color:#006064" data-id="'+id+'" data-f="pp" value="'+(hasPP?pp:'')+'" step="0.01" min="0" placeholder="—"/></td>'+
-      '</tr>';
+      if(cols.en)cells.push('<td><input type="text" class="stock-input" style="width:160px;font-weight:600;color:var(--primary)" data-id="'+id+'" data-f="en" value="'+en.replace(/"/g,'&quot;')+'"/></td>');
+      if(cols.pt)cells.push('<td><input type="text" class="stock-input" style="width:140px;color:#666" data-id="'+id+'" data-f="pt" value="'+pt.replace(/"/g,'&quot;')+'"/></td>');
+      if(cols.orig)cells.push('<td><input type="text" class="stock-input" style="width:100px" data-id="'+id+'" data-f="orig" value="'+(orig||'').replace(/"/g,'&quot;')+'"/></td>');
+      if(cols.cal)cells.push('<td><input type="text" class="stock-input" style="width:70px" data-id="'+id+'" data-f="cal" value="'+(cal||'').replace(/"/g,'&quot;')+'"/></td>');
+      if(cols.emb)cells.push('<td><input type="text" class="stock-input" style="width:140px" data-id="'+id+'" data-f="emb" value="'+(emb||'').replace(/"/g,'&quot;')+'"/></td>');
+      if(cols.un)cells.push('<td><select class="stock-input" style="width:80px" data-id="'+id+'" data-f="un"><option '+(un==='KG'?'selected':'')+'>KG</option><option '+(un==='UN'?'selected':'')+'>UN</option><option '+(un==='KG Drained wt'?'selected':'')+'>KG Drained wt</option><option '+(un==='L'?'selected':'')+'>L</option><option '+(un==='cx'?'selected':'')+'>cx</option></select></td>');
+      if(cols.pr)cells.push('<td><input type="number" class="stock-input" style="width:75px;font-weight:700;color:var(--primary);border-color:var(--primary)" data-id="'+id+'" data-f="pr" value="'+(hasP?pr:'')+'" step="0.01" min="0" placeholder="—"/></td>');
+      if(cols.pp)cells.push('<td><input type="number" class="stock-input" style="width:75px;border-color:#006064" data-id="'+id+'" data-f="pp" value="'+(hasPP?pp:'')+'" step="0.01" min="0" placeholder="—"/></td>');
     }else{
-      html+='<tr style="'+ed+'">'+
-        '<td style="color:#999;font-size:11px">'+(st+i+1)+'</td>'+
-        '<td><strong style="color:var(--primary)">'+en+'</strong>'+hb+'</td>'+
-        '<td style="font-size:11px;color:#666">'+pt+'</td>'+
-        '<td style="font-size:11px;color:#666">'+(orig||'—')+'</td>'+
-        '<td style="font-size:11px">'+(cal||'—')+'</td>'+
-        '<td style="font-size:11px;color:#666">'+(emb||'—')+'</td>'+
-        '<td><code style="background:#f0f4f5;padding:2px 5px;border-radius:3px;font-size:11px">'+un+'</code></td>'+
-        '<td>'+(hasP?'<strong style="color:var(--primary)">'+fmtCur(pr)+'</strong>':'<span style="color:#999">—</span>')+'</td>'+
-        '<td>'+(hasPP?'<span style="color:#666">'+fmtCur(pp)+'</span>':'—')+'</td>'+
-      '</tr>';
+      if(cols.en)cells.push('<td><strong style="color:var(--primary)">'+en+'</strong>'+hb+'</td>');
+      if(cols.pt)cells.push('<td style="font-size:11px;color:#666">'+pt+'</td>');
+      if(cols.orig)cells.push('<td style="font-size:11px;color:#666">'+(orig||'—')+'</td>');
+      if(cols.cal)cells.push('<td style="font-size:11px">'+(cal||'—')+'</td>');
+      if(cols.emb)cells.push('<td style="font-size:11px;color:#666">'+(emb||'—')+'</td>');
+      if(cols.un)cells.push('<td><code style="background:#f0f4f5;padding:2px 5px;border-radius:3px;font-size:11px">'+un+'</code></td>');
+      if(cols.pr)cells.push('<td>'+(hasP?'<strong style="color:var(--primary)">'+fmtCur(pr)+'</strong>':'<span style="color:#999">—</span>')+'</td>');
+      if(cols.pp)cells.push('<td>'+(hasPP?'<span style="color:#666">'+fmtCur(pp)+'</span>':'—')+'</td>');
     }
+    html+='<tr style="'+ed+'">'+cells.join('')+'</tr>';
   }
   if(body)body.innerHTML=html;
 
   if(ftEdit&&body){
-    body.querySelectorAll('input[data-id]').forEach(function(el){
+    body.querySelectorAll('input[data-id],select[data-id]').forEach(function(el){
       el.addEventListener('change',function(){
         var id=parseInt(this.dataset.id), f=this.dataset.f, v=this.value;
         if(!ftEdits[id])ftEdits[id]={};
@@ -878,10 +851,7 @@ function ftRender(){
             localStorage.setItem('fth',JSON.stringify(ftHist));
           }
           ftEdits[id][f]=nv;
-        }else{
-          // Text fields: en, pt, orig, cal, emb, un
-          ftEdits[id][f]=v;
-        }
+        }else{ftEdits[id][f]=v;}
       });
     });
   }
@@ -899,7 +869,6 @@ function ftRender(){
   ph+='<span style="font-size:12px;color:#999;margin-left:8px">'+ftPage+'/'+tp+'</span>';
   pag.innerHTML=ph;
 }
-
 function ftGo(p){ftPage=p;ftRender();window.scrollTo({top:0,behavior:'smooth'});}
 
 function ftToggleEdit(){
