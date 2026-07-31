@@ -355,7 +355,9 @@ const CONTACTS_INITIAL = [{"id": 1, "priority": "A", "company": "Abramczyk", "co
 
 var DB = [];
 var currentPage = 1;
+var _listPage = 1;
 var PAGE_SIZE = 20;
+var statusPages = {};
 var charts = {};
 
 // JSONP
@@ -422,6 +424,12 @@ function loadData() {
 }
 
 var _pCbs2 = {};
+
+function listGoPage(p) { _listPage = p; renderList(); }
+function statusGoPage(status, filterId, bodyId, emptyId, paginId, p) {
+  statusPages[status] = p;
+  renderStatusPage(status, filterId, bodyId, emptyId, paginId);
+}
 
 document.addEventListener('DOMContentLoaded', function() {
   setSyncStatus('A ligar ao Google Sheets...');
@@ -496,7 +504,7 @@ function renderCharts() {
   charts.pais = new Chart(ctx1, { type:'doughnut', data:{ labels:paisLabels, datasets:[{ data:paisData, backgroundColor:colors.slice(0,paisLabels.length), borderWidth:2, borderColor:'#fff', hoverOffset:6 }] }, options:{ responsive:true, plugins:{ legend:{ position:'bottom', labels:{ font:{size:11}, boxWidth:12, padding:8 } } } } });
 
   var top = DB.slice().sort(function(a,b){ return a.company.localeCompare(b.company); }).slice(0,10);
-  var empLabels = top.map(function(c){ return c.company.length>20?c.company.substring(0,20)+'...':c.company; });
+  var empLabels = top.map(function(c){ return c.company.length>20?String(c.company||'').substring(0,20)+'...':c.company; });
   var empColors = top.map(function(c){ return c.priority==='A'?'#e65100':c.priority==='B'?'#1565c0':'#6a1b9a'; });
 
   if (charts.empresa) charts.empresa.destroy();
@@ -521,13 +529,13 @@ function renderList() {
   var view = (document.getElementById('filterView')||{}).value||'cards';
 
   var filtered = DB.filter(function(c) {
-    var ms = !search || c.company.toLowerCase().indexOf(search)>=0 || (c.email&&c.email.toLowerCase().indexOf(search)>=0) || (c.country&&c.country.toLowerCase().indexOf(search)>=0);
+    var ms = !search || String(c.company||'').toLowerCase().indexOf(search)>=0 || (c.email&&String(c.email||'').toLowerCase().indexOf(search)>=0) || (c.country&&String(c.country||'').toLowerCase().indexOf(search)>=0);
     return ms && (!priority||c.priority===priority) && (!country||c.country===country);
   });
 
   var total=filtered.length, totalPages=Math.ceil(total/PAGE_SIZE);
-  if(currentPage>totalPages) currentPage=Math.max(1,totalPages);
-  var start=(currentPage-1)*PAGE_SIZE, paged=filtered.slice(start,start+PAGE_SIZE);
+  if(_listPage>totalPages) _listPage=Math.max(1,totalPages);
+  var start=(_listPage-1)*PAGE_SIZE, paged=filtered.slice(start,start+PAGE_SIZE);
 
   var info=document.getElementById('listInfo');
   if(info) info.textContent='A mostrar '+paged.length+' de '+total+' contacto(s)';
@@ -540,7 +548,31 @@ function renderList() {
   } else {
     container.innerHTML='<div class="table-wrapper"><table class="data-table"><thead><tr><th>Empresa</th><th>Pais</th><th>Prioridade</th><th>Estado</th><th>Email</th><th>Acoes</th></tr></thead><tbody>'+paged.map(contactRow).join('')+'</tbody></table></div>';
   }
-  renderPagination('listPagination', currentPage, totalPages, function(p){ currentPage=p; renderList(); });
+  // List pagination using createElement
+  (function(tp) {
+    var pg = document.getElementById('listPagination');
+    if (!pg) return;
+    pg.innerHTML = '';
+    if (tp <= 1) return;
+    function makeBtn(label, page, active) {
+      var btn = document.createElement('button');
+      btn.className = 'page-btn' + (active ? ' active' : '');
+      btn.textContent = label;
+      if (page === null) { btn.disabled = true; }
+      else { btn.onclick = function() { listGoPage(page); }; }
+      return btn;
+    }
+    var sp = document.createElement('span');
+    sp.style.cssText = 'font-size:12px;color:#999;margin-left:8px';
+    sp.textContent = 'Pag. ' + _listPage + '/' + tp;
+    if(_listPage>1) pg.appendChild(makeBtn('‹', _listPage-1, false));
+    var s=Math.max(1,_listPage-2), e=Math.min(tp,_listPage+2);
+    if(s>1){pg.appendChild(makeBtn('1',1,false));if(s>2){var d=document.createElement('span');d.textContent='...';d.style.padding='0 4px';pg.appendChild(d);}}
+    for(var p=s;p<=e;p++) pg.appendChild(makeBtn(p,p,p===_listPage));
+    if(e<tp){if(e<tp-1){var d2=document.createElement('span');d2.textContent='...';d2.style.padding='0 4px';pg.appendChild(d2);}pg.appendChild(makeBtn(tp,tp,false));}
+    if(_listPage<tp) pg.appendChild(makeBtn('›',_listPage+1,false));
+    pg.appendChild(sp);
+  })(totalPages);
 }
 
 function contactCard(c) {
@@ -550,13 +582,13 @@ function contactCard(c) {
       '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span class="badge-status badge-' + c.priority + '">' + c.priority + '</span><span class="badge-status badge-' + c.status + '">' + statusLabel(c.status) + '</span></div>' +
     '</div>' +
     '<div class="contact-info">' +
-      (c.email?'<div class="contact-info-row"><i class="fa-solid fa-envelope"></i>' + c.email.substring(0,35) + '</div>':'') +
-      (c.phone?'<div class="contact-info-row"><i class="fa-solid fa-phone"></i>' + c.phone.substring(0,30) + '</div>':'') +
-      (c.website?'<div class="contact-info-row"><i class="fa-solid fa-globe"></i>' + c.website.replace('https://','').substring(0,30) + '</div>':'') +
+      (c.email?'<div class="contact-info-row"><i class="fa-solid fa-envelope"></i>' + String(c.email||'').substring(0,35) + '</div>':'') +
+      (c.phone?'<div class="contact-info-row"><i class="fa-solid fa-phone"></i>' + String(c.phone||'').substring(0,30) + '</div>':'') +
+      (c.website?'<div class="contact-info-row"><i class="fa-solid fa-globe"></i>' + String(c.website||'').replace('https://','').substring(0,30) + '</div>':'') +
     '</div>' +
-    (c.notes?'<div class="contact-notes">' + c.notes.substring(0,100) + '</div>':'') +
+    (c.notes?'<div class="contact-notes">' + String(c.notes||'').substring(0,100) + '</div>':'') +
     '<div class="contact-footer">' +
-      (c.next_step?'<div style="font-size:11px;color:var(--warning);font-weight:600"><i class="fa-solid fa-arrow-right"></i> ' + c.next_step.substring(0,35) + '</div>':'<div></div>') +
+      (c.next_step?'<div style="font-size:11px;color:var(--warning);font-weight:600"><i class="fa-solid fa-arrow-right"></i> ' + String(c.next_step||'').substring(0,35) + '</div>':'<div></div>') +
       '<div style="display:flex;gap:4px" onclick="event.stopPropagation()">' +
         '<button class="btn btn-secondary btn-xs" onclick="editContact(' + c.id + ')"><i class="fa-solid fa-pen"></i></button>' +
         '<button class="btn btn-danger btn-xs" onclick="deleteContact(' + c.id + ')"><i class="fa-solid fa-trash"></i></button>' +
@@ -571,7 +603,7 @@ function contactRow(c) {
     '<td>' + (c.country||'-') + '</td>' +
     '<td><span class="badge-status badge-' + c.priority + '">' + c.priority + '</span></td>' +
     '<td><span class="badge-status badge-' + c.status + '">' + statusLabel(c.status) + '</span></td>' +
-    '<td style="font-size:11px">' + ((c.email||'').substring(0,30)||'-') + '</td>' +
+    '<td style="font-size:11px">' + (String(c.email||'').substring(0,30)||'-') + '</td>' +
     '<td><div class="actions" onclick="event.stopPropagation()">' +
       '<button class="btn btn-secondary btn-xs" onclick="editContact(' + c.id + ')"><i class="fa-solid fa-pen"></i></button>' +
       '<button class="btn btn-danger btn-xs" onclick="deleteContact(' + c.id + ')"><i class="fa-solid fa-trash"></i></button>' +
@@ -580,15 +612,40 @@ function contactRow(c) {
 }
 
 function renderStatusPage(status, filterId, bodyId, emptyId, paginId) {
+  if (!statusPages[status]) statusPages[status] = 1;
   var search = ((document.getElementById(filterId)||{}).value||'').toLowerCase();
-  var filtered = DB.filter(function(c){ return c.status===status && (!search||c.company.toLowerCase().indexOf(search)>=0); });
-  var total=filtered.length, totalPages=Math.ceil(total/PAGE_SIZE);
-  var start=(currentPage-1)*PAGE_SIZE, paged=filtered.slice(start,start+PAGE_SIZE);
+  var filtered = DB.filter(function(c){
+    return c.status===status && (!search||String(c.company||'').toLowerCase().indexOf(search)>=0);
+  });
+  var total=filtered.length, totalPages=Math.max(1,Math.ceil(total/PAGE_SIZE));
+  if(statusPages[status]>totalPages) statusPages[status]=totalPages;
+  var start=(statusPages[status]-1)*PAGE_SIZE, paged=filtered.slice(start,start+PAGE_SIZE);
   var tbody=document.getElementById(bodyId), empty=document.getElementById(emptyId);
-  if(!paged.length){ if(tbody)tbody.innerHTML=''; if(empty)empty.style.display='block'; return; }
+  if(!paged.length){if(tbody)tbody.innerHTML='';if(empty)empty.style.display='block';
+    var pg2=document.getElementById(paginId);if(pg2)pg2.innerHTML='';return;}
   if(empty)empty.style.display='none';
   if(tbody)tbody.innerHTML=paged.map(contactRow).join('');
-  renderPagination(paginId, currentPage, totalPages, function(p){ currentPage=p; renderStatusPage(status,filterId,bodyId,emptyId,paginId); });
+  // Build pagination with data attributes
+  var pg=document.getElementById(paginId);
+  if(!pg)return;
+  var tp=totalPages, cp=statusPages[status];
+  if(tp<=1){pg.innerHTML='';return;}
+  var h='';
+  if(cp>1) h+='<button class="page-btn" data-s="'+status+'" data-fi="'+filterId+'" data-bi="'+bodyId+'" data-ei="'+emptyId+'" data-pi="'+paginId+'" data-p="'+(cp-1)+'">&#8249;</button>';
+  var s=Math.max(1,cp-2),e=Math.min(tp,cp+2);
+  if(s>1){h+='<button class="page-btn" data-s="'+status+'" data-fi="'+filterId+'" data-bi="'+bodyId+'" data-ei="'+emptyId+'" data-pi="'+paginId+'" data-p="1">1</button>';if(s>2)h+='<span style="padding:0 4px">...</span>';}
+  for(var p=s;p<=e;p++) h+='<button class="page-btn'+(p===cp?' active':'')+'" data-s="'+status+'" data-fi="'+filterId+'" data-bi="'+bodyId+'" data-ei="'+emptyId+'" data-pi="'+paginId+'" data-p="'+p+'">'+p+'</button>';
+  if(e<tp){if(e<tp-1)h+='<span style="padding:0 4px">...</span>';h+='<button class="page-btn" data-s="'+status+'" data-fi="'+filterId+'" data-bi="'+bodyId+'" data-ei="'+emptyId+'" data-pi="'+paginId+'" data-p="'+tp+'">'+tp+'</button>';}
+  if(cp<tp) h+='<button class="page-btn" data-s="'+status+'" data-fi="'+filterId+'" data-bi="'+bodyId+'" data-ei="'+emptyId+'" data-pi="'+paginId+'" data-p="'+(cp+1)+'">&#8250;</button>';
+  h+='<span style="font-size:12px;color:#999;margin-left:8px">Pag. '+cp+'/'+tp+'</span>';
+  pg.innerHTML=h;
+  // Attach click handlers
+  pg.querySelectorAll('button[data-s]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      statusPages[this.dataset.s]=parseInt(this.dataset.p);
+      renderStatusPage(this.dataset.s,this.dataset.fi,this.dataset.bi,this.dataset.ei,this.dataset.pi);
+    });
+  });
 }
 
 function viewContact(id) {
@@ -705,23 +762,25 @@ var _pCbs2 = {};
 function renderPagination(containerId, currentPage, totalPages, onPageClick) {
   var container = document.getElementById(containerId);
   if (!container) return;
-  _pCbs2[containerId] = onPageClick;
-  // Create a unique global function for this container
-  var fnName = "_pg_" + containerId.replace(/[^a-zA-Z0-9]/g,"_");
-  window[fnName] = function(p) { if(_pCbs2[containerId]) _pCbs2[containerId](p); };
-  if (totalPages <= 1) { container.innerHTML = ""; return; }
-  var h = "";
-  if(currentPage>1) h += "<button class=\"page-btn\" onclick=\"" + fnName + "(" + (currentPage-1) + ")\">&#8249;</button>";
-  var s=Math.max(1,currentPage-2), e=Math.min(totalPages,currentPage+2);
-  if(s>1){h+="<button class=\"page-btn\" onclick=\"" + fnName + "(1)\">1</button>";if(s>2)h+="<span style=\"padding:0 4px\">...</span>";}
-  for(var p=s;p<=e;p++){
-    var act = p===currentPage ? " active" : "";
-    h += "<button class=\"page-btn" + act + "\" onclick=\"" + fnName + "(" + p + ")\">" + p + "</button>";
-  }
-  if(e<totalPages){if(e<totalPages-1)h+="<span style=\"padding:0 4px\">...</span>";h+="<button class=\"page-btn\" onclick=\"" + fnName + "(" + totalPages + ")\">" + totalPages + "</button>";}
-  if(currentPage<totalPages) h += "<button class=\"page-btn\" onclick=\"" + fnName + "(" + (currentPage+1) + ")\">&#8250;</button>";
-  h += "<span style=\"font-size:12px;color:#999;margin-left:8px\">Pag. " + currentPage + "/" + totalPages + "</span>";
-  container.innerHTML = h;
+  // Use IIFE to capture correct containerId and callback
+  (function(cid, cb) {
+    _pCbs2[cid] = cb;
+    var fnName = "_pg_" + cid.replace(/[^a-zA-Z0-9]/g,"_");
+    window[fnName] = function(p) { _pCbs2[cid](p); };
+    if (totalPages <= 1) { container.innerHTML = ""; return; }
+    var h = "";
+    if(currentPage>1) h += "<button class=\"page-btn\" onclick=\"" + fnName + "(" + (currentPage-1) + ")\">&#8249;</button>";
+    var s=Math.max(1,currentPage-2), e=Math.min(totalPages,currentPage+2);
+    if(s>1){h+="<button class=\"page-btn\" onclick=\"" + fnName + "(1)\">1</button>";if(s>2)h+="<span style=\"padding:0 4px\">...</span>";}
+    for(var p=s;p<=e;p++){
+      var act = p===currentPage ? " active" : "";
+      h += "<button class=\"page-btn" + act + "\" onclick=\"" + fnName + "(" + p + ")\">" + p + "</button>";
+    }
+    if(e<totalPages){if(e<totalPages-1)h+="<span style=\"padding:0 4px\">...</span>";h+="<button class=\"page-btn\" onclick=\"" + fnName + "(" + totalPages + ")\">" + totalPages + "</button>";}
+    if(currentPage<totalPages) h += "<button class=\"page-btn\" onclick=\"" + fnName + "(" + (currentPage+1) + ")\">&#8250;</button>";
+    h += "<span style=\"font-size:12px;color:#999;margin-left:8px\">Pag. " + currentPage + "/" + totalPages + "</span>";
+    container.innerHTML = h;
+  })(containerId, onPageClick);
 }
 
 

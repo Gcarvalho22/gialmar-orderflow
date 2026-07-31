@@ -105,6 +105,7 @@ body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(
 .empty-state i{font-size:26px;margin-bottom:8px;display:block;color:var(--border)}
 .loading{display:flex;align-items:center;justify-content:center;padding:32px;color:var(--text-muted);gap:10px;font-size:13px}
 .spinner{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite}
+@media print{.filters-bar,.topbar-right,.btn-refresh{display:none!important}.card{box-shadow:none!important;border:1px solid #ccc!important;break-inside:avoid}body{background:white!important}}
 </style>
 </head>
 <body>
@@ -119,6 +120,7 @@ body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(
       <div class="sync-dot" id="syncDot"></div>
       <span id="syncStatus">A ligar...</span>
     </div>
+    <button class="btn-refresh" onclick="window.print()" style="background:rgba(255,255,255,.08)"><i class="fa-solid fa-print"></i> PDF</button>
     <button class="btn-refresh" id="btnRefresh" onclick="refreshAll()">
       <i class="fa-solid fa-rotate-right"></i> Atualizar
     </button>
@@ -185,7 +187,17 @@ body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(
     </div>
   </div>
 
-  <div class="card grid-1">
+  <div class="grid-2" style="margin-bottom:14px">
+  <div class="card">
+    <div class="card-header"><h2><i class="fa-solid fa-barcode"></i> Top Artigos (Nr Artigo)</h2></div>
+    <div class="card-body" id="topArtigosEl"><div class="loading"><div class="spinner"></div> A carregar...</div></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h2><i class="fa-solid fa-id-card"></i> Top Clientes (Nr Cliente)</h2></div>
+    <div class="card-body" id="topClientesEl"><div class="loading"><div class="spinner"></div> A carregar...</div></div>
+  </div>
+</div>
+<div class="card grid-1">
     <div class="card-header">
       <h2><i class="fa-solid fa-list"></i> Detalhe das Encomendas</h2>
       <span id="tableCount" style="font-size:12px;color:var(--text-muted)"></span>
@@ -290,7 +302,7 @@ function applyFilters() {
     else if (currentPeriod==='year') ok = d.getFullYear()===now.getFullYear();
     return ok && (!com||e.criadoPor===com) && (!est||e.estado===est);
   });
-  updateStats(); renderChartPeriodo(); renderChartComercial(); renderTop5(); renderComercial(); renderTable();
+  updateStats(); renderChartPeriodo(); renderChartComercial(); renderTop5(); renderComercial(); renderTopArtigos(); renderTopClientes(); renderTable();
 }
 
 function updateStats() {
@@ -413,6 +425,58 @@ function renderComercial() {
       '</div>' +
       '<div class="com-total">'+fmtCur(item[1].valor)+'</div>' +
     '</div>';
+  }).join('');
+}
+
+function renderTopArtigos() {
+  var artCount = {};
+  filtered.forEach(function(e) {
+    var itens = e.itens;
+    if (typeof itens === 'string') { try { itens = JSON.parse(itens); } catch(ex) { itens = []; } }
+    if (!Array.isArray(itens)) return;
+    itens.forEach(function(i) {
+      var cod = i.artigoCod || '';
+      var nome = (i.produtoNome || '').split(' ')[0];
+      var key = cod ? cod + ' - ' + nome : nome;
+      if (!artCount[key]) artCount[key] = { valor: 0 };
+      artCount[key].valor += parseFloat(i.total) || 0;
+    });
+  });
+  var sorted = Object.entries(artCount).sort(function(a,b){ return b[1].valor-a[1].valor; }).slice(0,8);
+  var el = document.getElementById('topArtigosEl');
+  if (!el) return;
+  if (!sorted.length) { el.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px">Sem dados</p>'; return; }
+  var max = sorted[0][1].valor;
+  el.innerHTML = sorted.map(function(item,i) {
+    var pct = Math.round(item[1].valor/max*100);
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border-light)">' +
+      '<div style="width:22px;height:22px;border-radius:50%;background:#e3f2fd;color:#1565c0;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+(i+1)+'</div>' +
+      '<div style="flex:1"><div style="font-size:12px;font-weight:600;margin-bottom:3px">'+item[0]+'</div>' +
+      '<div style="height:5px;background:#e8eef0;border-radius:3px"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#1565c0,#0d47a1);border-radius:3px"></div></div></div>' +
+      '<div style="font-size:12px;font-weight:700;color:#1565c0;white-space:nowrap">'+fmtCur(item[1].valor)+'</div></div>';
+  }).join('');
+}
+
+function renderTopClientes() {
+  var cliCount = {};
+  filtered.forEach(function(e) {
+    var key = (e.numCliente ? '['+e.numCliente+'] ' : '') + e.clienteNome;
+    if (!cliCount[key]) cliCount[key] = { valor: 0, count: 0 };
+    cliCount[key].valor += parseFloat(e.total) || 0;
+    cliCount[key].count++;
+  });
+  var sorted = Object.entries(cliCount).sort(function(a,b){ return b[1].valor-a[1].valor; }).slice(0,8);
+  var el = document.getElementById('topClientesEl');
+  if (!el) return;
+  if (!sorted.length) { el.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px">Sem dados</p>'; return; }
+  var max = sorted[0][1].valor;
+  el.innerHTML = sorted.map(function(item,i) {
+    var pct = Math.round(item[1].valor/max*100);
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border-light)">' +
+      '<div style="width:22px;height:22px;border-radius:50%;background:#e0f2f1;color:#006064;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+(i+1)+'</div>' +
+      '<div style="flex:1"><div style="font-size:12px;font-weight:600;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px">'+item[0]+'</div>' +
+      '<div style="height:5px;background:#e8eef0;border-radius:3px"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#006064,#00838f);border-radius:3px"></div></div></div>' +
+      '<div style="font-size:12px;font-weight:700;color:#006064;white-space:nowrap">'+fmtCur(item[1].valor)+'</div></div>';
   }).join('');
 }
 

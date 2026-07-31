@@ -594,7 +594,7 @@ function renderEncomendas() {
   var estado = estadoEl ? estadoEl.value : '';
 
   var filtered = DB.encomendas.filter(function(e) {
-    var matchSearch = !search || e.clienteNome.toLowerCase().indexOf(search)>=0 || String(e.id).indexOf(search)>=0;
+    var matchSearch = !search || String(e.clienteNome||'').toLowerCase().indexOf(search)>=0 || String(e.id).indexOf(search)>=0;
     var matchEstado = !estado || e.estado === estado;
     // Comercial vê apenas as suas
     var matchUser = UTILIZADOR.isGerente || e.criadoPor === UTILIZADOR.nome;
