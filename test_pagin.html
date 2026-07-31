@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"/><title>Teste Paginacao</title></head>
+<body>
+<div id="info"></div>
+<div id="listPagination"></div>
+<div id="bodyTodos"></div>
+
+<script>
+var _paginCbs = {};
+function goPage(cid, p) {
+  console.log('goPage called:', cid, p);
+  document.getElementById('info').textContent = 'goPage chamado: ' + cid + ' pagina ' + p;
+  if (_paginCbs[cid]) _paginCbs[cid](p);
+}
+
+function renderPagination(containerId, currentPage, totalPages, onPageClick) {
+  var container = document.getElementById(containerId);
+  if (!container) return;
+  _paginCbs[containerId] = onPageClick;
+  if (totalPages <= 1) { container.innerHTML = ''; return; }
+  var h = '';
+  var cid = containerId;
+  for (var p=1; p<=totalPages; p++) {
+    var active = p===currentPage ? ' style="font-weight:bold;color:red"' : '';
+    h += '<button' + active + ' onclick="goPage('' + cid + '',' + p + ')">' + p + '</button> ';
+  }
+  container.innerHTML = h;
+}
+
+var currentPage = 1;
+var PAGE_SIZE = 5;
+var DB = [];
+for (var i=1; i<=25; i++) DB.push({company:'Empresa '+i, status:'ativo', priority:'A', country:'PT'});
+
+function renderList() {
+  var filtered = DB;
+  var total = filtered.length;
+  var totalPages = Math.ceil(total/PAGE_SIZE);
+  if(currentPage>totalPages) currentPage=1;
+  var start = (currentPage-1)*PAGE_SIZE;
+  var paged = filtered.slice(start, start+PAGE_SIZE);
+  document.getElementById('bodyTodos').innerHTML = paged.map(function(c){return '<div>'+c.company+'</div>';}).join('');
+  renderPagination('listPagination', currentPage, totalPages, function(p){ currentPage=p; renderList(); });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  renderList();
+});
+</script>
+</body>
+</html>
