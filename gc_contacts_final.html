@@ -421,6 +421,9 @@ function loadData() {
   });
 }
 
+var _pCbs2 = [];
+function _gp2(idx, p) { if(_pCbs2[idx]) _pCbs2[idx](p); }
+
 document.addEventListener('DOMContentLoaded', function() {
   setSyncStatus('A ligar ao Google Sheets...');
   ftLoad();
@@ -682,16 +685,7 @@ function onGlobalSearch(val) {
   renderList();
 }
 
-function renderPagination(containerId, currentPage, totalPages, onPageClick) {
-  var container=document.getElementById(containerId); if(!container) return;
-  if(totalPages<=1){ container.innerHTML=''; return; }
-  var html='<button class="page-btn" onclick="(' + onPageClick.toString() + ')(' + (currentPage-1) + ')" ' + (currentPage===1?'disabled':'') + '>&#8249;</button>';
-  for(var p=Math.max(1,currentPage-2); p<=Math.min(totalPages,currentPage+2); p++) {
-    html+='<button class="page-btn ' + (p===currentPage?'active':'') + '" onclick="(' + onPageClick.toString() + ')(' + p + ')">' + p + '</button>';
-  }
-  html+='<button class="page-btn" onclick="(' + onPageClick.toString() + ')(' + (currentPage+1) + ')" ' + (currentPage===totalPages?'disabled':'') + '>&#8250;</button>';
-  container.innerHTML=html;
-}
+
 
 function statusLabel(s){ return {ativo:'Ativo',em_estudo:'Em Estudo',por_validar:'Por Validar',inativo:'Inativo'}[s]||s; }
 function closeModal(){ document.getElementById('modalDetalhe').classList.remove('open'); }
