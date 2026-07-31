@@ -554,9 +554,11 @@ function setSyncStatusGerente(msg, ok) {
 
 async function syncGerente() {
   setSyncStatusGerente('A sincronizar...');
+  console.log('syncGerente called, APPS_SCRIPT_URL=', APPS_SCRIPT_URL);
   try {
     // Sync encomendas from Google Sheets
     var encRes = await jsonpGet('getEncomendas');
+    console.log('encRes:', Array.isArray(encRes) ? encRes.length + ' encomendas' : encRes);
     if (Array.isArray(encRes) && encRes.length > 0) {
       DB.encomendas = encRes;
     }
@@ -575,7 +577,8 @@ async function syncGerente() {
     updateDashboard();
     renderNotifBadge();
   } catch(e) {
-    setSyncStatusGerente('Offline - dados locais');
+    console.error('syncGerente error:', e.message);
+    setSyncStatusGerente('Erro: ' + e.message);
   }
 }
 
