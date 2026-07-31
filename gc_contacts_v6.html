@@ -718,23 +718,37 @@ function onGlobalSearch(val) {
   renderList();
 }
 
+var _paginCbs = {};
+
+function goPage(containerId, p) {
+  if (_paginCbs[containerId]) _paginCbs[containerId](p);
+}
+
+var _paginCbs = {};
+
+function goPage(cid, p) {
+  if (_paginCbs[cid]) _paginCbs[cid](p);
+}
+
 function renderPagination(containerId, currentPage, totalPages, onPageClick) {
   var container = document.getElementById(containerId);
   if (!container) return;
-  if (totalPages <= 1) { container.innerHTML = ''; return; }
-  if (!window._pc) window._pc = {};
-  window._pc[containerId] = onPageClick;
-  var fn = "window._pc['" + containerId + "']";
-  var h = '';
-  h += '<button class="page-btn"' + (currentPage===1?' disabled':'') + ' onclick="' + fn + '(' + (currentPage-1) + ')">&#8249;</button>';
+  _paginCbs[containerId] = onPageClick;
+  if (totalPages <= 1) { container.innerHTML = ""; return; }
+  var h = "";
+  var cid = containerId;
+  var prev = currentPage - 1;
+  var next = currentPage + 1;
+  h += "<button class=\"page-btn\"" + (currentPage===1?" disabled":"") + " onclick=\"goPage('" + cid + "'," + prev + ")\">&#8249;</button>";
   var s = Math.max(1,currentPage-2), e = Math.min(totalPages,currentPage+2);
-  if (s>1) h += '<button class="page-btn" onclick="' + fn + '(1)">1</button>' + (s>2?'<span style="padding:0 4px">...</span>':'');
+  if (s>1) { h += "<button class=\"page-btn\" onclick=\"goPage('" + cid + "',1)\">1</button>"; if(s>2) h += "<span style=\"padding:0 4px\">...</span>"; }
   for (var p=s; p<=e; p++) {
-    h += '<button class="page-btn' + (p===currentPage?' active':'') + '" onclick="' + fn + '(' + p + ')">' + p + '</button>';
+    var active = p===currentPage ? " active" : "";
+    h += "<button class=\"page-btn" + active + "\" onclick=\"goPage('" + cid + "'," + p + ")\">" + p + "</button>";
   }
-  if (e<totalPages) h += (e<totalPages-1?'<span style="padding:0 4px">...</span>':'') + '<button class="page-btn" onclick="' + fn + '(' + totalPages + ')">' + totalPages + '</button>';
-  h += '<button class="page-btn"' + (currentPage===totalPages?' disabled':'') + ' onclick="' + fn + '(' + (currentPage+1) + ')">&#8250;</button>';
-  h += '<span style="font-size:12px;color:#999;margin-left:8px">Pag. ' + currentPage + '/' + totalPages + '</span>';
+  if (e<totalPages) { if(e<totalPages-1) h += "<span style=\"padding:0 4px\">...</span>"; h += "<button class=\"page-btn\" onclick=\"goPage('" + cid + "'," + totalPages + ")\">" + totalPages + "</button>"; }
+  h += "<button class=\"page-btn\"" + (currentPage===totalPages?" disabled":"") + " onclick=\"goPage('" + cid + "'," + next + ")\">&#8250;</button>";
+  h += "<span style=\"font-size:12px;color:#999;margin-left:8px\">Pag. " + currentPage + "/" + totalPages + "</span>";
   container.innerHTML = h;
 }
 
