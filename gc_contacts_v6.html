@@ -449,6 +449,12 @@ function loadData() {
   });
 }
 
+var _paginCbs = {};
+
+function goPage(cid, p) {
+  if (_paginCbs[cid]) _paginCbs[cid](p);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   setSyncStatus('A ligar ao Google Sheets...');
   initNav();
@@ -722,12 +728,6 @@ var _paginCbs = {};
 
 function goPage(containerId, p) {
   if (_paginCbs[containerId]) _paginCbs[containerId](p);
-}
-
-var _paginCbs = {};
-
-function goPage(cid, p) {
-  if (_paginCbs[cid]) _paginCbs[cid](p);
 }
 
 function renderPagination(containerId, currentPage, totalPages, onPageClick) {
