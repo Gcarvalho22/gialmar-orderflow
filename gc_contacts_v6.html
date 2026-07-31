@@ -218,10 +218,10 @@ body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(
   <section class="page" id="page-todos">
     <div class="page-actions">
       <div class="filter-group">
-        <input type="text" class="filter-input" placeholder="Filtrar..." id="filterSearch" oninput="renderList()"/>
-        <select class="filter-select" id="filterPriority" onchange="renderList()"><option value="">Todas prioridades</option><option value="A">A</option><option value="B">B</option><option value="C">C</option></select>
-        <select class="filter-select" id="filterCountry" onchange="renderList()"><option value="">Todos os paises</option></select>
-        <select class="filter-select" id="filterView" onchange="renderList()"><option value="cards">Cards</option><option value="table">Tabela</option></select>
+        <input type="text" class="filter-input" placeholder="Filtrar..." id="filterSearch" oninput="currentPage=1;renderList()"/>
+        <select class="filter-select" id="filterPriority" onchange="currentPage=1;renderList()"><option value="">Todas prioridades</option><option value="A">A</option><option value="B">B</option><option value="C">C</option></select>
+        <select class="filter-select" id="filterCountry" onchange="currentPage=1;renderList()"><option value="">Todos os paises</option></select>
+        <select class="filter-select" id="filterView" onchange="currentPage=1;renderList()"><option value="cards">Cards</option><option value="table">Tabela</option></select>
       </div>
       <button class="btn btn-primary btn-sm" onclick="navigateTo('novo')"><i class="fa-solid fa-plus"></i> Novo</button>
     </div>
@@ -231,25 +231,25 @@ body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(
   </section>
 
   <section class="page" id="page-ativos">
-    <div class="page-actions"><input type="text" class="filter-input" placeholder="Filtrar ativos..." id="filterAtivos" oninput="renderStatusPage('ativo','filterAtivos','bodyAtivos','emptyAtivos','paginAtivos')"/><button class="btn btn-primary btn-sm" onclick="navigateTo('novo')"><i class="fa-solid fa-plus"></i> Novo</button></div>
+    <div class="page-actions"><input type="text" class="filter-input" placeholder="Filtrar ativos..." id="filterAtivos" oninput="statusPages['ativo']=1;renderStatusPage('ativo','filterAtivos','bodyAtivos','emptyAtivos','paginAtivos')"/><button class="btn btn-primary btn-sm" onclick="navigateTo('novo')"><i class="fa-solid fa-plus"></i> Novo</button></div>
     <div class="table-wrapper"><table class="data-table"><thead><tr><th>Empresa</th><th>Pais</th><th>Prioridade</th><th>Email</th><th>Acoes</th></tr></thead><tbody id="bodyAtivos"></tbody></table><div class="table-empty" id="emptyAtivos" style="display:none"><i class="fa-solid fa-circle-check"></i><p>Sem contactos ativos</p></div></div>
     <div class="table-pagination" id="paginAtivos"></div>
   </section>
 
   <section class="page" id="page-em_estudo">
-    <div class="page-actions"><input type="text" class="filter-input" placeholder="Filtrar..." id="filterEstudo" oninput="renderStatusPage('em_estudo','filterEstudo','bodyEstudo','emptyEstudo','paginEstudo')"/><button class="btn btn-primary btn-sm" onclick="navigateTo('novo')"><i class="fa-solid fa-plus"></i> Novo</button></div>
+    <div class="page-actions"><input type="text" class="filter-input" placeholder="Filtrar..." id="filterEstudo" oninput="statusPages['em_estudo']=1;renderStatusPage('em_estudo','filterEstudo','bodyEstudo','emptyEstudo','paginEstudo')"/><button class="btn btn-primary btn-sm" onclick="navigateTo('novo')"><i class="fa-solid fa-plus"></i> Novo</button></div>
     <div class="table-wrapper"><table class="data-table"><thead><tr><th>Empresa</th><th>Pais</th><th>Prioridade</th><th>Email</th><th>Acoes</th></tr></thead><tbody id="bodyEstudo"></tbody></table><div class="table-empty" id="emptyEstudo" style="display:none"><i class="fa-solid fa-magnifying-glass"></i><p>Sem contactos em estudo</p></div></div>
     <div class="table-pagination" id="paginEstudo"></div>
   </section>
 
   <section class="page" id="page-por_validar">
-    <div class="page-actions"><input type="text" class="filter-input" placeholder="Filtrar..." id="filterValidar" oninput="renderStatusPage('por_validar','filterValidar','bodyValidar','emptyValidar','paginValidar')"/><button class="btn btn-primary btn-sm" onclick="navigateTo('novo')"><i class="fa-solid fa-plus"></i> Novo</button></div>
+    <div class="page-actions"><input type="text" class="filter-input" placeholder="Filtrar..." id="filterValidar" oninput="statusPages['por_validar']=1;renderStatusPage('por_validar','filterValidar','bodyValidar','emptyValidar','paginValidar')"/><button class="btn btn-primary btn-sm" onclick="navigateTo('novo')"><i class="fa-solid fa-plus"></i> Novo</button></div>
     <div class="table-wrapper"><table class="data-table"><thead><tr><th>Empresa</th><th>Pais</th><th>Prioridade</th><th>Email</th><th>Acoes</th></tr></thead><tbody id="bodyValidar"></tbody></table><div class="table-empty" id="emptyValidar" style="display:none"><i class="fa-solid fa-clock"></i><p>Sem contactos por validar</p></div></div>
     <div class="table-pagination" id="paginValidar"></div>
   </section>
 
   <section class="page" id="page-inativo">
-    <div class="page-actions"><input type="text" class="filter-input" placeholder="Filtrar..." id="filterInativo" oninput="renderStatusPage('inativo','filterInativo','bodyInativo','emptyInativo','paginInativo')"/></div>
+    <div class="page-actions"><input type="text" class="filter-input" placeholder="Filtrar..." id="filterInativo" oninput="statusPages['inativo']=1;renderStatusPage('inativo','filterInativo','bodyInativo','emptyInativo','paginInativo')"/></div>
     <div class="table-wrapper"><table class="data-table"><thead><tr><th>Empresa</th><th>Pais</th><th>Prioridade</th><th>Email</th><th>Acoes</th></tr></thead><tbody id="bodyInativo"></tbody></table><div class="table-empty" id="emptyInativo" style="display:none"><i class="fa-solid fa-circle-xmark"></i><p>Sem contactos inativos</p></div></div>
     <div class="table-pagination" id="paginInativo"></div>
   </section>
@@ -383,6 +383,7 @@ const CONTACTS_INITIAL = [{"id": 1, "priority": "A", "company": "Abramczyk", "co
 var DB = [];
 var currentPage = 1;
 var PAGE_SIZE = 20;
+var statusPages = {};
 var charts = {};
 
 // JSONP
@@ -605,15 +606,23 @@ function contactRow(c) {
 }
 
 function renderStatusPage(status, filterId, bodyId, emptyId, paginId) {
+  if (!statusPages[status]) statusPages[status] = 1;
   var search = ((document.getElementById(filterId)||{}).value||'').toLowerCase();
-  var filtered = DB.filter(function(c){ return c.status===status && (!search||c.company.toLowerCase().indexOf(search)>=0); });
-  var total=filtered.length, totalPages=Math.ceil(total/PAGE_SIZE);
-  var start=(currentPage-1)*PAGE_SIZE, paged=filtered.slice(start,start+PAGE_SIZE);
+  var filtered = DB.filter(function(c){
+    return c.status===status && (!search||c.company.toLowerCase().indexOf(search)>=0);
+  });
+  var total=filtered.length, totalPages=Math.max(1,Math.ceil(total/PAGE_SIZE));
+  if(statusPages[status]>totalPages) statusPages[status]=totalPages;
+  var start=(statusPages[status]-1)*PAGE_SIZE, paged=filtered.slice(start,start+PAGE_SIZE);
   var tbody=document.getElementById(bodyId), empty=document.getElementById(emptyId);
-  if(!paged.length){ if(tbody)tbody.innerHTML=''; if(empty)empty.style.display='block'; return; }
+  if(!paged.length){if(tbody)tbody.innerHTML='';if(empty)empty.style.display='block';
+    var pg=document.getElementById(paginId);if(pg)pg.innerHTML='';return;}
   if(empty)empty.style.display='none';
   if(tbody)tbody.innerHTML=paged.map(contactRow).join('');
-  renderPagination(paginId, currentPage, totalPages, function(p){ currentPage=p; renderStatusPage(status,filterId,bodyId,emptyId,paginId); });
+  renderPagination(paginId, statusPages[status], totalPages, function(p){
+    statusPages[status]=p;
+    renderStatusPage(status,filterId,bodyId,emptyId,paginId);
+  });
 }
 
 function viewContact(id) {
