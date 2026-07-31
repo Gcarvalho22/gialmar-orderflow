@@ -719,14 +719,23 @@ function onGlobalSearch(val) {
 }
 
 function renderPagination(containerId, currentPage, totalPages, onPageClick) {
-  var container=document.getElementById(containerId); if(!container) return;
-  if(totalPages<=1){ container.innerHTML=''; return; }
-  var html='<button class="page-btn" onclick="(' + onPageClick.toString() + ')(' + (currentPage-1) + ')" ' + (currentPage===1?'disabled':'') + '>&#8249;</button>';
-  for(var p=Math.max(1,currentPage-2); p<=Math.min(totalPages,currentPage+2); p++) {
-    html+='<button class="page-btn ' + (p===currentPage?'active':'') + '" onclick="(' + onPageClick.toString() + ')(' + p + ')">' + p + '</button>';
+  var container = document.getElementById(containerId);
+  if (!container) return;
+  if (totalPages <= 1) { container.innerHTML = ''; return; }
+  if (!window._pc) window._pc = {};
+  window._pc[containerId] = onPageClick;
+  var fn = "window._pc['" + containerId + "']";
+  var h = '';
+  h += '<button class="page-btn"' + (currentPage===1?' disabled':'') + ' onclick="' + fn + '(' + (currentPage-1) + ')">&#8249;</button>';
+  var s = Math.max(1,currentPage-2), e = Math.min(totalPages,currentPage+2);
+  if (s>1) h += '<button class="page-btn" onclick="' + fn + '(1)">1</button>' + (s>2?'<span style="padding:0 4px">...</span>':'');
+  for (var p=s; p<=e; p++) {
+    h += '<button class="page-btn' + (p===currentPage?' active':'') + '" onclick="' + fn + '(' + p + ')">' + p + '</button>';
   }
-  html+='<button class="page-btn" onclick="(' + onPageClick.toString() + ')(' + (currentPage+1) + ')" ' + (currentPage===totalPages?'disabled':'') + '>&#8250;</button>';
-  container.innerHTML=html;
+  if (e<totalPages) h += (e<totalPages-1?'<span style="padding:0 4px">...</span>':'') + '<button class="page-btn" onclick="' + fn + '(' + totalPages + ')">' + totalPages + '</button>';
+  h += '<button class="page-btn"' + (currentPage===totalPages?' disabled':'') + ' onclick="' + fn + '(' + (currentPage+1) + ')">&#8250;</button>';
+  h += '<span style="font-size:12px;color:#999;margin-left:8px">Pag. ' + currentPage + '/' + totalPages + '</span>';
+  container.innerHTML = h;
 }
 
 function statusLabel(s){ return {ativo:'Ativo',em_estudo:'Em Estudo',por_validar:'Por Validar',inativo:'Inativo'}[s]||s; }
