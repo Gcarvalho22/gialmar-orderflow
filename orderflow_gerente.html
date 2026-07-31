@@ -670,13 +670,18 @@ function loadFromStorage() {
 
 // ===== NAVIGATION =====
 function initNavigation() {
-  document.querySelectorAll('.nav-item').forEach(item => {
-    item.addEventListener('click', e => { e.preventDefault(); navigateTo(item.dataset.page); });
+  document.querySelectorAll('.nav-item').forEach(function(item) {
+    item.addEventListener('click', function(e) { e.preventDefault(); navigateTo(item.dataset.page); });
   });
-  document.getElementById('sidebarToggle').addEventListener('click', () => {
-    document.getElementById('sidebar').classList.toggle('collapsed');
-    document.getElementById('mainContent').classList.toggle('expanded');
-  });
+  var toggle = document.getElementById('sidebarToggle');
+  if (toggle) {
+    toggle.addEventListener('click', function() {
+      var sb = document.getElementById('sidebar');
+      var mc = document.getElementById('mainContent');
+      if(sb) sb.classList.toggle('collapsed');
+      if(mc) mc.classList.toggle('expanded');
+    });
+  }
 }
 function navigateTo(page) {
   document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
