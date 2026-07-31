@@ -617,8 +617,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ===== LOGO =====
-function loadLogo() { setLogoSrc('data:image/jpeg;base64,' + LOGO_B64); }
-function setLogoSrc(src) { document.getElementById('sidebarLogo').src = src; }
+function loadLogo() { var el=document.getElementById('sidebarLogo'); if(el) setLogoSrc('data:image/jpeg;base64,' + LOGO_B64); }
+function setLogoSrc(src) { var el=document.getElementById('sidebarLogo'); if(el) el.src = src; }
 function setLogoFallback() {
   document.getElementById('logoWrap').innerHTML = '<div style="color:white;font-weight:800;font-size:14px">GIALMAR</div>';
 }
