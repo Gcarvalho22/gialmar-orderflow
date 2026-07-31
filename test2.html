@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"/><title>Teste</title></head>
+<body style="font-family:sans-serif;padding:20px">
+<h2>Teste de Paginacao</h2>
+<div id="msg" style="color:green;margin-bottom:10px">A iniciar...</div>
+<div id="pagin"></div>
+<div id="lista" style="margin-top:10px"></div>
+<script>
+var pg = 1;
+var dados = [];
+for(var i=1;i<=30;i++) dados.push('Empresa ' + i);
+
+function render() {
+  var total = dados.length;
+  var tp = Math.ceil(total/5);
+  var start = (pg-1)*5;
+  var items = dados.slice(start, start+5);
+  
+  document.getElementById('msg').textContent = 'Pagina ' + pg + ' de ' + tp;
+  document.getElementById('lista').innerHTML = items.map(function(d){return '<div style="padding:4px;border-bottom:1px solid #eee">'+d+'</div>';}).join('');
+  
+  var h = '';
+  for(var p=1;p<=tp;p++){
+    h += '<button id="btn'+p+'" style="margin:2px;padding:6px 12px;'+(p===pg?'background:#1565c0;color:white;':'background:#eee;')+'" onclick="changePage('+p+')">'+p+'</button>';
+  }
+  document.getElementById('pagin').innerHTML = h;
+}
+
+function changePage(p) {
+  pg = p;
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
