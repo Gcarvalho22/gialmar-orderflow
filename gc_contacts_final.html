@@ -706,18 +706,28 @@ function _gp2(cid, p) { if(_pCbs2[cid]) _pCbs2[cid](p); }
 function renderPagination(containerId, currentPage, totalPages, onPageClick) {
   var container = document.getElementById(containerId);
   if (!container) return;
-  // Store callback with container ID as key
   _pCbs2[containerId] = onPageClick;
-  if (totalPages <= 1) { container.innerHTML = ''; return; }
-  var h = '';
-  if(currentPage>1) h += '<button class="page-btn" onclick="_gp2(\''+containerId+'\','+(currentPage-1)+')">&#8249;</button>';
+  if (totalPages <= 1) { container.innerHTML = ""; return; }
+  var h = "";
+  if(currentPage>1) h += "<button class=\"page-btn\" data-cid=\"" + containerId + "\" data-p=\"" + (currentPage-1) + "\">&#8249;</button>";
   var s=Math.max(1,currentPage-2), e=Math.min(totalPages,currentPage+2);
-  if(s>1){h+='<button class="page-btn" onclick="_gp2(\''+containerId+'\',1)">1</button>';if(s>2)h+='<span style="padding:0 4px">...</span>';}
-  for(var p=s;p<=e;p++) h+='<button class="page-btn'+(p===currentPage?' active':'')+'" onclick="_gp2(\''+containerId+'\','+p+')">'+p+'</button>';
-  if(e<totalPages){if(e<totalPages-1)h+='<span style="padding:0 4px">...</span>';h+='<button class="page-btn" onclick="_gp2(\''+containerId+'\','+totalPages+')">'+totalPages+'</button>';}
-  if(currentPage<totalPages) h+='<button class="page-btn" onclick="_gp2(\''+containerId+'\','+(currentPage+1)+')">&#8250;</button>';
-  h+='<span style="font-size:12px;color:#999;margin-left:8px">Pag. '+currentPage+'/'+totalPages+'</span>';
+  if(s>1){h+="<button class=\"page-btn\" data-cid=\"" + containerId + "\" data-p=\"1\">1</button>";if(s>2)h+="<span style=\"padding:0 4px\">...</span>";}
+  for(var p=s;p<=e;p++){
+    var act = p===currentPage ? " active" : "";
+    h += "<button class=\"page-btn" + act + "\" data-cid=\"" + containerId + "\" data-p=\"" + p + "\">" + p + "</button>";
+  }
+  if(e<totalPages){if(e<totalPages-1)h+="<span style=\"padding:0 4px\">...</span>";h+="<button class=\"page-btn\" data-cid=\"" + containerId + "\" data-p=\"" + totalPages + "\">" + totalPages + "</button>";}
+  if(currentPage<totalPages) h += "<button class=\"page-btn\" data-cid=\"" + containerId + "\" data-p=\"" + (currentPage+1) + "\">&#8250;</button>";
+  h += "<span style=\"font-size:12px;color:#999;margin-left:8px\">Pag. " + currentPage + "/" + totalPages + "</span>";
   container.innerHTML = h;
+  // Attach click handlers
+  container.querySelectorAll("button[data-cid]").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      var cid = this.dataset.cid;
+      var p = parseInt(this.dataset.p);
+      if (_pCbs2[cid]) _pCbs2[cid](p);
+    });
+  });
 }
 
 
