@@ -528,6 +528,10 @@ document.addEventListener('DOMContentLoaded', () => {
   initNavigation(); initProdutos(); initClientes(); initEncomendas();
   initNovaEncomenda(); initNotifications(); initProfile();
   updateDashboard(); setTodayDate(); renderNotifBadge();
+  // Sync with Google Sheets
+  setSyncStatusGerente('A ligar...');
+  setTimeout(syncGerente, 500);
+  setInterval(syncGerente, 30000);
 });
 
 // ===== LOGO =====
@@ -1086,6 +1090,84 @@ function initGerente(){
   document.addEventListener('click',function(e){var pd=document.getElementById('profileDropdown'),ta=document.getElementById('topbarAvatar');if(pd&&ta&&!ta.contains(e.target))pd.classList.remove('open');});
 }
 function toggleProfile(){var pd=document.getElementById('profileDropdown');if(pd)pd.classList.toggle('open');}
+
+
+// ===== GOOGLE SHEETS SYNC (Gerente) =====
+function jsonpGet(action) {
+  return new Promise(function(resolve, reject) {
+    var cb = '_cb_' + Date.now() + '_' + Math.floor(Math.random()*9999);
+    var s = document.createElement('script');
+    var t = setTimeout(function(){ reject(new Error('Timeout')); cleanup(); }, 12000);
+    window[cb] = function(data){ resolve(data); cleanup(); };
+    s.onerror = function(){ reject(new Error('onerror')); cleanup(); };
+    function cleanup(){ clearTimeout(t); delete window[cb]; if(s.parentNode) s.parentNode.removeChild(s); }
+    s.src = APPS_SCRIPT_URL + '?action=' + action + '&callback=' + cb + '&t=' + Date.now();
+    document.head.appendChild(s);
+  });
+}
+
+function apiPost(action, data) {
+  var body = Object.assign({ action: action }, data);
+  return fetch(APPS_SCRIPT_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify(body) })
+    .then(function(r){ return r.json(); })
+    .catch(function(e){ return { error: e.message }; });
+}
+
+function setSyncStatusGerente(msg, ok) {
+  var el = document.getElementById('syncStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = ok ? '#2e7d32' : '#8aa5ad';
+}
+
+async function syncGerente() {
+  setSyncStatusGerente('A sincronizar...');
+  try {
+    // Sync encomendas from Google Sheets
+    var encRes = await jsonpGet('getEncomendas');
+    if (Array.isArray(encRes) && encRes.length > 0) {
+      DB.encomendas = encRes;
+    }
+    // Sync clientes from Google Sheets
+    var cliRes = await jsonpGet('getClientes');
+    if (Array.isArray(cliRes) && cliRes.length > 0) {
+      DB.clientes = cliRes;
+    }
+    // Sync notifications
+    var notifRes = await jsonpGet('getNotificacoes&destinatario=gerente');
+    if (Array.isArray(notifRes)) {
+      DB.notificacoes = notifRes;
+    }
+    saveToStorage();
+    setSyncStatusGerente('Atualizado ' + new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'}), true);
+    updateDashboard();
+    renderNotifBadge();
+  } catch(e) {
+    setSyncStatusGerente('Offline - dados locais');
+  }
+}
+
+// Override updateEstado to also update Google Sheets
+var _origChangeEstado = typeof changeEstado !== 'undefined' ? changeEstado : null;
+function changeEstado(id, novoEstado) {
+  var enc = DB.encomendas.find(function(e){return e.id===id;});
+  if (!enc) return;
+  enc.estado = novoEstado;
+  saveToStorage();
+  renderEncomendas();
+  updateDashboard();
+  renderNotifBadge();
+  var label = novoEstado==='aprovada' ? 'aprovada ✓' : 'rejeitada ✗';
+  // Update Google Sheets
+  apiPost('updateEstado', {id: id, estado: novoEstado}).then(function(res){
+    if (res && res.ok) {
+      showToast('Encomenda #'+fmtId(id)+' '+label+' (sincronizado)', novoEstado==='aprovada'?'success':'warning');
+    } else {
+      showToast('Encomenda #'+fmtId(id)+' '+label+' (local)', novoEstado==='aprovada'?'success':'warning');
+    }
+  });
+  closeModal('modalDetalheEncomenda');
+}
 
 </script>
 </body>
