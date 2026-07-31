@@ -449,306 +449,35 @@ function loadData() {
   });
 }
 
-var _paginCbs = {};
+var _pCbs = [];
 
-function goPage(cid, p) {
-  if (_paginCbs[cid]) _paginCbs[cid](p);
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-  setSyncStatus('A ligar ao Google Sheets...');
-  initNav();
-  loadData();
-  setInterval(loadData, 60000);
-});
-
-function initNav() {
-  document.querySelectorAll('.nav-item').forEach(function(item) {
-    item.addEventListener('click', function(e) { e.preventDefault(); navigateTo(item.dataset.page); });
-  });
-}
-
-function navigateTo(page) {
-  document.querySelectorAll('.nav-item').forEach(function(i){ i.classList.remove('active'); });
-  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
-  var nav = document.querySelector('.nav-item[data-page="' + page + '"]');
-  if (nav) nav.classList.add('active');
-  var pg = document.getElementById('page-' + page);
-  if (pg) pg.classList.add('active');
-  var titles = { dashboard:'Dashboard', todos:'Todos os Contactos', ativos:'Ativos', em_estudo:'Em Estudo', por_validar:'Por Validar', inativo:'Inativos', novo:'Novo Contacto', tabela:'Tabela de Precos' };
-  document.getElementById('pageTitle').textContent = titles[page] || page;
-  currentPage = 1;
-  if (page === 'dashboard') updateDashboard();
-  if (page === 'todos') renderList();
-  if (page === 'ativos') renderStatusPage('ativo','filterAtivos','bodyAtivos','emptyAtivos','paginAtivos');
-  if (page === 'em_estudo') renderStatusPage('em_estudo','filterEstudo','bodyEstudo','emptyEstudo','paginEstudo');
-  if (page === 'por_validar') renderStatusPage('por_validar','filterValidar','bodyValidar','emptyValidar','paginValidar');
-  if (page === 'inativo') renderStatusPage('inativo','filterInativo','bodyInativo','emptyInativo','paginInativo');
-  if (page === 'novo') { clearForm(); document.getElementById('formTitle').textContent = 'Novo Contacto'; }
-  if (page === 'tabela') { ftPage=1; ftRender(); }
-}
-
-function updateDashboard() {
-  var total=DB.length, ativos=0, estudo=0, validar=0, inativos=0, prioA=0;
-  DB.forEach(function(c) {
-    if(c.status==='ativo') ativos++;
-    else if(c.status==='em_estudo') estudo++;
-    else if(c.status==='por_validar') validar++;
-    else if(c.status==='inativo') inativos++;
-    if(c.priority==='A') prioA++;
-  });
-  document.getElementById('sTotal').textContent = total;
-  document.getElementById('sAtivos').textContent = ativos;
-  document.getElementById('sEstudo').textContent = estudo;
-  document.getElementById('sValidar').textContent = validar;
-  document.getElementById('sInativos').textContent = inativos;
-  document.getElementById('sPrioA').textContent = prioA;
-
-  var rc = document.getElementById('recentContacts');
-  var recent = DB.slice().sort(function(a,b){ return new Date(b.createdAt)-new Date(a.createdAt); }).slice(0,5);
-  rc.innerHTML = recent.map(function(c) {
-    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border-light)">' +
-      '<div><div style="font-weight:700;font-size:13px">' + c.company + '</div><div style="font-size:11px;color:var(--text-muted)">' + (c.country||'-') + (c.city?' / '+c.city:'') + '</div></div>' +
-      '<div style="display:flex;gap:6px"><span class="badge-status badge-' + c.priority + '">' + c.priority + '</span><span class="badge-status badge-' + c.status + '">' + statusLabel(c.status) + '</span></div>' +
-    '</div>';
-  }).join('');
-
-  renderCharts();
-}
-
-function renderCharts() {
-  var paisCount = {};
-  DB.forEach(function(c){ var p=c.country||'?'; paisCount[p]=(paisCount[p]||0)+1; });
-  var paisLabels = Object.keys(paisCount).sort(function(a,b){ return paisCount[b]-paisCount[a]; }).slice(0,8);
-  var paisData = paisLabels.map(function(p){ return paisCount[p]; });
-  var colors = ['#1565c0','#0288d1','#006064','#00838f','#0097a7','#26c6da','#4fc3f7','#81d4fa'];
-
-  if (charts.pais) charts.pais.destroy();
-  var ctx1 = document.getElementById('chartPais').getContext('2d');
-  charts.pais = new Chart(ctx1, { type:'doughnut', data:{ labels:paisLabels, datasets:[{ data:paisData, backgroundColor:colors.slice(0,paisLabels.length), borderWidth:2, borderColor:'#fff', hoverOffset:6 }] }, options:{ responsive:true, plugins:{ legend:{ position:'bottom', labels:{ font:{size:11}, boxWidth:12, padding:8 } } } } });
-
-  var top = DB.slice().sort(function(a,b){ return a.company.localeCompare(b.company); }).slice(0,10);
-  var empLabels = top.map(function(c){ return c.company.length>20?c.company.substring(0,20)+'...':c.company; });
-  var empColors = top.map(function(c){ return c.priority==='A'?'#e65100':c.priority==='B'?'#1565c0':'#6a1b9a'; });
-
-  if (charts.empresa) charts.empresa.destroy();
-  var ctx2 = document.getElementById('chartEmpresa').getContext('2d');
-  charts.empresa = new Chart(ctx2, { type:'bar', data:{ labels:empLabels, datasets:[{ data:top.map(function(){return 1;}), backgroundColor:empColors, borderRadius:4, borderWidth:0 }] }, options:{ indexAxis:'y', responsive:true, plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:function(ctx){ var c=top[ctx.dataIndex]; return ' '+c.company+' ('+c.country+') Prio '+c.priority; } } } }, scales:{ x:{display:false}, y:{ticks:{font:{size:11}}} } } });
-}
-
-function populateCountryFilter() {
-  var countries = [];
-  DB.forEach(function(c){ if(c.country && countries.indexOf(c.country)<0) countries.push(c.country); });
-  countries.sort();
-  var sel = document.getElementById('filterCountry');
-  if (!sel) return;
-  var cur = sel.value;
-  sel.innerHTML = '<option value="">Todos os paises</option>' + countries.map(function(c){ return '<option value="' + c + '" ' + (c===cur?'selected':'') + '>' + c + '</option>'; }).join('');
-}
-
-function renderList() {
-  var search = ((document.getElementById('filterSearch')||{}).value||'').toLowerCase();
-  var priority = (document.getElementById('filterPriority')||{}).value||'';
-  var country = (document.getElementById('filterCountry')||{}).value||'';
-  var view = (document.getElementById('filterView')||{}).value||'cards';
-
-  var filtered = DB.filter(function(c) {
-    var ms = !search || c.company.toLowerCase().indexOf(search)>=0 || (c.email&&c.email.toLowerCase().indexOf(search)>=0) || (c.country&&c.country.toLowerCase().indexOf(search)>=0);
-    return ms && (!priority||c.priority===priority) && (!country||c.country===country);
-  });
-
-  var total=filtered.length, totalPages=Math.ceil(total/PAGE_SIZE);
-  if(currentPage>totalPages) currentPage=Math.max(1,totalPages);
-  var start=(currentPage-1)*PAGE_SIZE, paged=filtered.slice(start,start+PAGE_SIZE);
-
-  var info=document.getElementById('listInfo');
-  if(info) info.textContent='A mostrar '+paged.length+' de '+total+' contacto(s)';
-
-  var container=document.getElementById('listContainer');
-  if(!container) return;
-
-  if(view==='cards') {
-    container.innerHTML='<div class="contacts-grid">'+paged.map(contactCard).join('')+'</div>';
-  } else {
-    container.innerHTML='<div class="table-wrapper"><table class="data-table"><thead><tr><th>Empresa</th><th>Pais</th><th>Prioridade</th><th>Estado</th><th>Email</th><th>Acoes</th></tr></thead><tbody>'+paged.map(contactRow).join('')+'</tbody></table></div>';
-  }
-  renderPagination('listPagination', currentPage, totalPages, function(p){ currentPage=p; renderList(); });
-}
-
-function contactCard(c) {
-  return '<div class="contact-card prio-' + c.priority + '" onclick="viewContact(' + c.id + ')">' +
-    '<div class="contact-card-header">' +
-      '<div><div class="contact-name">' + c.company + '</div><div class="contact-location">' + (c.city||c.country||'-') + '</div></div>' +
-      '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><span class="badge-status badge-' + c.priority + '">' + c.priority + '</span><span class="badge-status badge-' + c.status + '">' + statusLabel(c.status) + '</span></div>' +
-    '</div>' +
-    '<div class="contact-info">' +
-      (c.email?'<div class="contact-info-row"><i class="fa-solid fa-envelope"></i>' + c.email.substring(0,35) + '</div>':'') +
-      (c.phone?'<div class="contact-info-row"><i class="fa-solid fa-phone"></i>' + c.phone.substring(0,30) + '</div>':'') +
-      (c.website?'<div class="contact-info-row"><i class="fa-solid fa-globe"></i>' + c.website.replace('https://','').substring(0,30) + '</div>':'') +
-    '</div>' +
-    (c.notes?'<div class="contact-notes">' + c.notes.substring(0,100) + '</div>':'') +
-    '<div class="contact-footer">' +
-      (c.next_step?'<div style="font-size:11px;color:var(--warning);font-weight:600"><i class="fa-solid fa-arrow-right"></i> ' + c.next_step.substring(0,35) + '</div>':'<div></div>') +
-      '<div style="display:flex;gap:4px" onclick="event.stopPropagation()">' +
-        '<button class="btn btn-secondary btn-xs" onclick="editContact(' + c.id + ')"><i class="fa-solid fa-pen"></i></button>' +
-        '<button class="btn btn-danger btn-xs" onclick="deleteContact(' + c.id + ')"><i class="fa-solid fa-trash"></i></button>' +
-      '</div>' +
-    '</div>' +
-  '</div>';
-}
-
-function contactRow(c) {
-  return '<tr onclick="viewContact(' + c.id + ')">' +
-    '<td><strong>' + c.company + '</strong></td>' +
-    '<td>' + (c.country||'-') + '</td>' +
-    '<td><span class="badge-status badge-' + c.priority + '">' + c.priority + '</span></td>' +
-    '<td><span class="badge-status badge-' + c.status + '">' + statusLabel(c.status) + '</span></td>' +
-    '<td style="font-size:11px">' + ((c.email||'').substring(0,30)||'-') + '</td>' +
-    '<td><div class="actions" onclick="event.stopPropagation()">' +
-      '<button class="btn btn-secondary btn-xs" onclick="editContact(' + c.id + ')"><i class="fa-solid fa-pen"></i></button>' +
-      '<button class="btn btn-danger btn-xs" onclick="deleteContact(' + c.id + ')"><i class="fa-solid fa-trash"></i></button>' +
-    '</div></td>' +
-  '</tr>';
-}
-
-function renderStatusPage(status, filterId, bodyId, emptyId, paginId) {
-  if (!statusPages[status]) statusPages[status] = 1;
-  var search = ((document.getElementById(filterId)||{}).value||'').toLowerCase();
-  var filtered = DB.filter(function(c){
-    return c.status===status && (!search||c.company.toLowerCase().indexOf(search)>=0);
-  });
-  var total=filtered.length, totalPages=Math.max(1,Math.ceil(total/PAGE_SIZE));
-  if(statusPages[status]>totalPages) statusPages[status]=totalPages;
-  var start=(statusPages[status]-1)*PAGE_SIZE, paged=filtered.slice(start,start+PAGE_SIZE);
-  var tbody=document.getElementById(bodyId), empty=document.getElementById(emptyId);
-  if(!paged.length){if(tbody)tbody.innerHTML='';if(empty)empty.style.display='block';
-    var pg=document.getElementById(paginId);if(pg)pg.innerHTML='';return;}
-  if(empty)empty.style.display='none';
-  if(tbody)tbody.innerHTML=paged.map(contactRow).join('');
-  renderPagination(paginId, statusPages[status], totalPages, function(p){
-    statusPages[status]=p;
-    renderStatusPage(status,filterId,bodyId,emptyId,paginId);
-  });
-}
-
-function viewContact(id) {
-  var c=DB.find(function(x){ return x.id===id; }); if(!c) return;
-  document.getElementById('modalTitle').textContent = c.company;
-  document.getElementById('modalBody').innerHTML =
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">' +
-      '<div><span style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Pais / Cidade</span><div style="font-size:13px;font-weight:600;margin-top:2px">' + (c.country||'-') + (c.city?' / '+c.city:'') + '</div></div>' +
-      '<div><span style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Estado</span><div style="margin-top:4px"><span class="badge-status badge-' + c.status + '">' + statusLabel(c.status) + '</span></div></div>' +
-      '<div><span style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Prioridade</span><div style="margin-top:4px"><span class="badge-status badge-' + c.priority + '">' + c.priority + '</span></div></div>' +
-      '<div><span style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Website</span><div style="font-size:13px;margin-top:2px">' + (c.website?'<a href="' + (c.website.startsWith('http')?c.website:'https://'+c.website) + '" target="_blank" style="color:var(--primary)">' + c.website + '</a>':'-') + '</div></div>' +
-    '</div>' +
-    (c.email?'<div style="margin-bottom:10px"><span style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Email</span><div style="font-size:13px;margin-top:4px;word-break:break-all">' + c.email + '</div></div>':'') +
-    (c.phone?'<div style="margin-bottom:10px"><span style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Telefone</span><div style="font-size:13px;margin-top:4px">' + c.phone + '</div></div>':'') +
-    (c.notes?'<div style="margin-bottom:10px"><span style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Notas</span><div style="font-size:13px;margin-top:6px;background:var(--bg);padding:12px;border-radius:6px;line-height:1.6;white-space:pre-wrap">' + c.notes + '</div></div>':'') +
-    (c.next_step?'<div><span style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase">Proximo Passo</span><div style="font-size:13px;margin-top:6px;background:var(--warning-light);padding:10px;border-radius:6px;color:var(--warning);font-weight:600"><i class="fa-solid fa-arrow-right"></i> ' + c.next_step + '</div></div>':'');
-  document.getElementById('modalFooter').innerHTML =
-    '<button class="btn btn-outline" onclick="closeModal()">Fechar</button>' +
-    '<button class="btn btn-secondary" onclick="editContact(' + c.id + ');closeModal()"><i class="fa-solid fa-pen"></i> Editar</button>' +
-    '<button class="btn btn-danger" onclick="deleteContact(' + c.id + ');closeModal()"><i class="fa-solid fa-trash"></i> Eliminar</button>';
-  document.getElementById('modalDetalhe').classList.add('open');
-}
-
-function editContact(id) {
-  var c=DB.find(function(x){ return x.id===id; }); if(!c) return;
-  navigateTo('novo');
-  document.getElementById('formTitle').textContent = 'Editar Contacto';
-  document.getElementById('editId').value = id;
-  document.getElementById('fCompany').value = c.company||'';
-  document.getElementById('fPriority').value = c.priority||'B';
-  document.getElementById('fCountry').value = c.country||'';
-  document.getElementById('fCity').value = c.city||'';
-  document.getElementById('fEmail').value = c.email||'';
-  document.getElementById('fPhone').value = c.phone||'';
-  document.getElementById('fWebsite').value = c.website||'';
-  document.getElementById('fStatus').value = c.status||'em_estudo';
-  document.getElementById('fNotes').value = c.notes||'';
-  document.getElementById('fNextStep').value = c.next_step||'';
-}
-
-function deleteContact(id) {
-  if(!confirm('Eliminar este contacto?')) return;
-  apiPost('deleteContact', { id: id }).then(function() {
-    DB = DB.filter(function(c){ return c.id!==id; });
-    localStorage.setItem('gc_contacts', JSON.stringify(DB));
-    updateDashboard(); renderList();
-    showToast('Contacto eliminado.','warning');
-  });
-}
-
-function saveContact() {
-  var company = document.getElementById('fCompany').value.trim();
-  if(!company){ showToast('O nome da empresa e obrigatorio.','error'); return; }
-  var editId = document.getElementById('editId').value;
-  var contact = {
-    id: editId ? parseInt(editId) : Date.now(),
-    company: company,
-    priority: document.getElementById('fPriority').value,
-    country: document.getElementById('fCountry').value.trim(),
-    city: document.getElementById('fCity').value.trim(),
-    email: document.getElementById('fEmail').value.trim(),
-    phone: document.getElementById('fPhone').value.trim(),
-    website: document.getElementById('fWebsite').value.trim(),
-    status: document.getElementById('fStatus').value,
-    notes: document.getElementById('fNotes').value.trim(),
-    next_step: document.getElementById('fNextStep').value.trim(),
-    createdAt: editId ? (DB.find(function(c){ return c.id===parseInt(editId); })||{}).createdAt||new Date().toISOString() : new Date().toISOString()
-  };
-  apiPost('saveContact', { data: contact }).then(function(res) {
-    if(res && res.ok) {
-      if(editId) { var idx=DB.findIndex(function(c){ return c.id===parseInt(editId); }); if(idx>=0) DB[idx]=Object.assign({},contact,{id:parseInt(editId)}); showToast('Contacto atualizado!','success'); }
-      else { contact.id=res.id||Date.now(); DB.push(contact); showToast('Contacto adicionado!','success'); }
-    } else {
-      if(editId) { var idx=DB.findIndex(function(c){ return c.id===parseInt(editId); }); if(idx>=0) DB[idx]=contact; }
-      else { contact.id=Date.now(); DB.push(contact); }
-      showToast('Guardado localmente','warning');
-    }
-    localStorage.setItem('gc_contacts', JSON.stringify(DB));
-    updateDashboard(); populateCountryFilter(); clearForm(); navigateTo('todos');
-  });
-}
-
-function clearForm() {
-  ['editId','fCompany','fCountry','fCity','fEmail','fPhone','fWebsite','fNotes','fNextStep'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
-  var fp=document.getElementById('fPriority'); if(fp) fp.value='B';
-  var fs=document.getElementById('fStatus'); if(fs) fs.value='em_estudo';
-}
-
-function onGlobalSearch(val) {
-  if(val.length<2) return;
-  navigateTo('todos');
-  var el=document.getElementById('filterSearch'); if(el) el.value=val;
-  renderList();
-}
-
-var _paginCbs = {};
-
-function goPage(containerId, p) {
-  if (_paginCbs[containerId]) _paginCbs[containerId](p);
+function _gp(idx, p) {
+  if (_pCbs[idx]) _pCbs[idx](p);
 }
 
 function renderPagination(containerId, currentPage, totalPages, onPageClick) {
   var container = document.getElementById(containerId);
   if (!container) return;
-  _paginCbs[containerId] = onPageClick;
-  if (totalPages <= 1) { container.innerHTML = ""; return; }
-  var h = "";
-  var cid = containerId;
-  var prev = currentPage - 1;
-  var next = currentPage + 1;
-  h += "<button class=\"page-btn\"" + (currentPage===1?" disabled":"") + " onclick=\"goPage('" + cid + "'," + prev + ")\">&#8249;</button>";
-  var s = Math.max(1,currentPage-2), e = Math.min(totalPages,currentPage+2);
-  if (s>1) { h += "<button class=\"page-btn\" onclick=\"goPage('" + cid + "',1)\">1</button>"; if(s>2) h += "<span style=\"padding:0 4px\">...</span>"; }
-  for (var p=s; p<=e; p++) {
-    var active = p===currentPage ? " active" : "";
-    h += "<button class=\"page-btn" + active + "\" onclick=\"goPage('" + cid + "'," + p + ")\">" + p + "</button>";
+  var cbIdx = _pCbs.length;
+  // Check if already registered for this container
+  if (!container.dataset.cbIdx) {
+    _pCbs.push(onPageClick);
+    container.dataset.cbIdx = cbIdx;
+  } else {
+    cbIdx = parseInt(container.dataset.cbIdx);
+    _pCbs[cbIdx] = onPageClick;
   }
-  if (e<totalPages) { if(e<totalPages-1) h += "<span style=\"padding:0 4px\">...</span>"; h += "<button class=\"page-btn\" onclick=\"goPage('" + cid + "'," + totalPages + ")\">" + totalPages + "</button>"; }
-  h += "<button class=\"page-btn\"" + (currentPage===totalPages?" disabled":"") + " onclick=\"goPage('" + cid + "'," + next + ")\">&#8250;</button>";
-  h += "<span style=\"font-size:12px;color:#999;margin-left:8px\">Pag. " + currentPage + "/" + totalPages + "</span>";
+  if (totalPages <= 1) { container.innerHTML = ''; return; }
+  var h = '';
+  if (currentPage > 1) h += '<button class="page-btn" onclick="_gp(' + cbIdx + ',' + (currentPage-1) + ')">&#8249;</button>';
+  var s = Math.max(1,currentPage-2), e = Math.min(totalPages,currentPage+2);
+  if (s>1) { h += '<button class="page-btn" onclick="_gp(' + cbIdx + ',1)">1</button>'; if(s>2) h += '<span style="padding:0 4px">...</span>'; }
+  for (var p=s; p<=e; p++) {
+    h += '<button class="page-btn' + (p===currentPage?' active':'') + '" onclick="_gp(' + cbIdx + ',' + p + ')">' + p + '</button>';
+  }
+  if (e<totalPages) { if(e<totalPages-1) h += '<span style="padding:0 4px">...</span>'; h += '<button class="page-btn" onclick="_gp(' + cbIdx + ',' + totalPages + ')">' + totalPages + '</button>'; }
+  if (currentPage < totalPages) h += '<button class="page-btn" onclick="_gp(' + cbIdx + ',' + (currentPage+1) + ')">&#8250;</button>';
+  h += '<span style="font-size:12px;color:#999;margin-left:8px">Pag. ' + currentPage + '/' + totalPages + '</span>';
   container.innerHTML = h;
 }
 
