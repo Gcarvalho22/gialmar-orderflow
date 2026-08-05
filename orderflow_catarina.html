@@ -382,7 +382,10 @@ function loadProdutosLocais() {
 async function syncAll() {
   showSyncStatus('A sincronizar...');
   try {
-    await Promise.all([syncEncomendas(), syncClientes(), syncNotificacoes()]);
+    // Run encomendas and clientes in parallel, notifications separately
+    await Promise.all([syncEncomendas(), syncClientes()]);
+    // Notifications are optional - don't fail if they timeout
+    try { await syncNotificacoes(); } catch(ne) { console.log('Notif skipped'); }
     lastSync = new Date();
     showSyncStatus('Sincronizado ' + formatTime(lastSync));
     renderCurrentPage();
@@ -409,9 +412,13 @@ async function syncClientes() {
   }
 }
 async function syncNotificacoes() {
-  const dest = UTILIZADOR.isGerente ? 'gerente' : UTILIZADOR.nome;
-  const res = await apiGet('getNotificacoes', { destinatario: dest });
-  if (res && !res.error) DB.notificacoes = res;
+  try {
+    const dest = UTILIZADOR.isGerente ? 'gerente' : UTILIZADOR.nome;
+    const res = await apiGet('getNotificacoes', { destinatario: dest });
+    if (res && !res.error) DB.notificacoes = res;
+  } catch(e) {
+    console.log('syncNotificacoes skipped:', e.message);
+  }
 }
 
 // ===== API HELPERS (JSONP para ficheiros locais) =====
