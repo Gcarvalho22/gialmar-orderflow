@@ -600,7 +600,7 @@ function jsonpGet(action) {
   return new Promise(function(resolve, reject) {
     var cb = '_cb_' + Date.now() + '_' + Math.floor(Math.random()*9999);
     var s = document.createElement('script');
-    var t = setTimeout(function(){ reject(new Error('Timeout')); cleanup(); }, 20000);
+    var t = setTimeout(function(){ reject(new Error('Timeout')); cleanup(); }, 30000);
     window[cb] = function(data){ resolve(data); cleanup(); };
     s.onerror = function(){ reject(new Error('onerror')); cleanup(); };
     function cleanup(){ clearTimeout(t); delete window[cb]; if(s.parentNode) s.parentNode.removeChild(s); }
@@ -624,6 +624,7 @@ function setSyncStatusGerente(msg, ok) {
 }
 
 async function syncGerente() {
+  setSyncStatusGerente('A sincronizar...');
   try {
     // Sync encomendas (critical)
     var encRes = await jsonpGet('getEncomendas');
@@ -648,7 +649,13 @@ async function syncGerente() {
     renderNotifBadge();
   } catch(e) {
     console.error('syncGerente error:', e.message);
-    setSyncStatusGerente('Erro: ' + e.message);
+    if (e.message === 'Timeout') {
+      setSyncStatusGerente('Timeout - a tentar novamente...');
+      // Retry after 5 seconds
+      setTimeout(syncGerente, 5000);
+    } else {
+      setSyncStatusGerente('Erro: ' + e.message);
+    }
   }
 }
 
