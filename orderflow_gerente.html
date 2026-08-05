@@ -567,10 +567,14 @@ async function syncGerente() {
     if (Array.isArray(cliRes) && cliRes.length > 0) {
       DB.clientes = cliRes;
     }
-    // Sync notifications
-    var notifRes = await jsonpGet('getNotificacoes&destinatario=gerente');
-    if (Array.isArray(notifRes)) {
-      DB.notificacoes = notifRes;
+    // Sync notifications (optional - don't fail if this times out)
+    try {
+      var notifRes = await jsonpGet('getNotificacoes&destinatario=gerente');
+      if (Array.isArray(notifRes)) {
+        DB.notificacoes = notifRes;
+      }
+    } catch(ne) {
+      console.log('Notificacoes sync skipped:', ne.message);
     }
     saveToStorage();
     setSyncStatusGerente('Atualizado ' + new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'}), true);
