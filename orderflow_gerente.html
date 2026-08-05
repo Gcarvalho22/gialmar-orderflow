@@ -296,7 +296,10 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 <a class="nav-item" data-page="clientes" onclick="navigateTo('clientes')">
 <i class="fa-solid fa-users"></i><span>Clientes</span>
 </a>
-<a class="nav-item" data-page="historico-precos" onclick="navigateTo('historico-precos')">
+<a class="nav-item" data-page="evolucao-precos" onclick="navigateTo('evolucao-precos')">
+      <i class="fa-solid fa-chart-line"></i><span>Evolucao Precos</span>
+    </a>
+    <a class="nav-item" data-page="historico-precos" onclick="navigateTo('historico-precos')">
       <i class="fa-solid fa-clock-rotate-left"></i><span>Historico Precos</span>
     </a>
     <a class="nav-item" data-page="produtos" onclick="navigateTo('produtos')">
@@ -527,6 +530,48 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
       </div>
     </div>
     <div class="table-pagination" id="paginHistPreco"></div>
+  </section>
+
+  <!-- EVOLUCAO DE PRECOS -->
+  <section class="page" id="page-evolucao-precos">
+    <div style="background:var(--surface);border-radius:var(--radius);padding:14px 18px;margin-bottom:16px;box-shadow:var(--shadow);border:1px solid var(--border-light)">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="width:12px;height:12px;border-radius:50%;background:#2e7d32;display:inline-block"></span>
+          <span style="font-size:12px;font-weight:600">Subida de preco</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="width:12px;height:12px;border-radius:50%;background:#c62828;display:inline-block"></span>
+          <span style="font-size:12px;font-weight:600">Descida de preco</span>
+        </div>
+        <div style="flex:1"></div>
+        <input type="text" class="input-text" placeholder="Filtrar produto..." id="filterEvolucao" style="max-width:250px" oninput="renderEvolucao()"/>
+        <select class="input-select" id="filterEvolucaoTipo" onchange="renderEvolucao()" style="max-width:160px">
+          <option value="">Todas as alteracoes</option>
+          <option value="up">Subidas</option>
+          <option value="down">Descidas</option>
+        </select>
+      </div>
+    </div>
+    <div class="table-info" id="evolucaoInfo"></div>
+    <div class="table-wrapper">
+      <table class="data-table">
+        <thead><tr>
+          <th>Produto</th>
+          <th style="text-align:center;background:#e8f5e9;color:#1b5e20">Maio 2026</th>
+          <th style="text-align:center">Var. Mai→Jun</th>
+          <th style="text-align:center;background:#e3f2fd;color:#1565c0">Junho 2026</th>
+          <th style="text-align:center">Var. Jun→Jul</th>
+          <th style="text-align:center;background:#fff3e0;color:#e65100">Julho 2026</th>
+          <th style="text-align:center">Var. Total</th>
+        </tr></thead>
+        <tbody id="bodyEvolucao"></tbody>
+      </table>
+      <div class="table-empty" id="emptyEvolucao" style="display:none">
+        <i class="fa-solid fa-chart-line"></i>
+        <p>Sem alteracoes de preco encontradas</p>
+      </div>
+    </div>
   </section>
 </main>
 <!-- MODALS -->
@@ -1564,6 +1609,67 @@ function printSelectedProd() {
   printWin.document.close();
   printWin.focus();
   setTimeout(function(){ printWin.print(); }, 500);
+}
+
+
+// ===== EVOLUCAO DE PRECOS =====
+const PRICE_EVOLUTION = [{"produto": "Carapau                        Nacional/Espanha", "mai": 2.35, "jun": 2.15, "jul": 2.15, "variacao_total": -0.2}, {"produto": "Carapau                        Nacional/Espanha", "mai": 2.45, "jun": 2.75, "jul": 2.75, "variacao_total": 0.3}, {"produto": "Carapau                        Nacional/Espanha", "mai": 2.75, "jun": 3.05, "jul": 3.05, "variacao_total": 0.3}, {"produto": "Carapau                        Nacional/Espanha", "mai": 2.95, "jun": 1.95, "jul": 1.85, "variacao_total": -1.1}, {"produto": "Carapau                        Nacional/Espanha", "mai": 1.95, "jun": 1.75, "jul": 1.75, "variacao_total": -0.2}, {"produto": "Carapau                        Nacional/Espanha", "mai": 1.8, "jun": 2.05, "jul": 2.05, "variacao_total": 0.25}, {"produto": "Carapau                        Nacional/Espanha", "mai": 2.1, "jun": 1.65, "jul": 1.65, "variacao_total": -0.45}, {"produto": "Carapau                        Nacional/Espanha", "mai": 1.65, "jun": 1.95, "jul": 1.95, "variacao_total": 0.3}, {"produto": "Carapau                        Nacional/Espanha", "mai": 1.95, "jun": 2.25, "jul": 2.25, "variacao_total": 0.3}, {"produto": "Carapau                        Nacional/Espanha", "mai": 2.25, "jun": 2.45, "jul": 2.45, "variacao_total": 0.2}, {"produto": "Dourada                          ES/GR/TR/PT", "mai": 6.95, "jun": 6.95, "jul": 6.45, "variacao_total": -0.5}, {"produto": "Dourada                          ES/GR/TR/PT", "mai": 7.85, "jun": 7.85, "jul": 7.45, "variacao_total": -0.4}, {"produto": "Dourada                          ES/GR/TR/PT", "mai": 6.95, "jun": 6.95, "jul": 6.55, "variacao_total": -0.4}, {"produto": "Dourada                          ES/GR/TR/PT", "mai": 7.85, "jun": 7.85, "jul": 7.45, "variacao_total": -0.4}, {"produto": "Dourada                          ES/GR/TR", "mai": 6.95, "jun": 6.95, "jul": 6.65, "variacao_total": -0.3}, {"produto": "Dourada                          ES/GR/TR", "mai": 7.85, "jun": 7.85, "jul": 4.55, "variacao_total": -3.3}, {"produto": "Filete de perca                        Uganda", "mai": 8.2, "jun": 7.95, "jul": 7.95, "variacao_total": -0.25}, {"produto": "Lula inteira                     África do Sul                   S", "mai": 9.95, "jun": 9.95, "jul": 10.95, "variacao_total": 1.0}, {"produto": "Perca do Nilo grande                   Uganda", "mai": 6.45, "jun": 6.55, "jul": 6.55, "variacao_total": 0.1}, {"produto": "Perca do Nilo pequena                  Uganda", "mai": 6.35, "jun": 6.45, "jul": 6.45, "variacao_total": 0.1}, {"produto": "Pescada", "mai": 1.75, "jun": 2.35, "jul": 2.35, "variacao_total": 0.6}, {"produto": "Pescada", "mai": 3.45, "jun": 4.25, "jul": 4.25, "variacao_total": 0.8}, {"produto": "Pescada", "mai": 2.15, "jun": 2.95, "jul": 2.95, "variacao_total": 0.8}, {"produto": "Pescada", "mai": 2.25, "jun": 3.15, "jul": 3.15, "variacao_total": 0.9}, {"produto": "Pescada", "mai": 2.95, "jun": 3.45, "jul": 3.45, "variacao_total": 0.5}, {"produto": "Pescada", "mai": 2.95, "jun": 4.0, "jul": 4.0, "variacao_total": 1.05}, {"produto": "Pescada", "mai": 3.25, "jun": 4.05, "jul": 4.05, "variacao_total": 0.8}, {"produto": "Pescada", "mai": 3.9, "jun": 3.35, "jul": 3.35, "variacao_total": -0.55}, {"produto": "Pescada", "mai": 3.95, "jun": 3.65, "jul": 3.65, "variacao_total": -0.3}, {"produto": "Pescada", "mai": 3.15, "jun": 4.2, "jul": 4.2, "variacao_total": 1.05}, {"produto": "Pota tentáculos             Perú", "mai": 4.55, "jun": 4.55, "jul": 3.95, "variacao_total": -0.6}, {"produto": "Pota tiras                  Perú/Chile                                    Caixa", "mai": 2.45, "jun": 2.15, "jul": 2.15, "variacao_total": -0.3}, {"produto": "Pota tiras                  Perú/Chile                                    Saco", "mai": 2.75, "jun": 2.45, "jul": 2.45, "variacao_total": -0.3}, {"produto": "Red fish                    Noruega                           -", "mai": 3.65, "jun": 3.65, "jul": 3.95, "variacao_total": 0.3}, {"produto": "Red fish                    Noruega/Canadá", "mai": 3.85, "jun": 3.85, "jul": 4.05, "variacao_total": 0.2}, {"produto": "Red fish                    Noruega/Canadá", "mai": 2.95, "jun": 3.15, "jul": 3.35, "variacao_total": 0.4}, {"produto": "Red fish                    Noruega/Canadá", "mai": 3.25, "jun": 3.45, "jul": 3.65, "variacao_total": 0.4}, {"produto": "Red fish                    Noruega/Canadá", "mai": 3.65, "jun": 3.75, "jul": 4.05, "variacao_total": 0.4}, {"produto": "Red fish                    Noruega/Canadá", "mai": 4.55, "jun": 4.65, "jul": 4.85, "variacao_total": 0.3}, {"produto": "Red fish                    Noruega/Canadá", "mai": 3.75, "jun": 3.85, "jul": 4.05, "variacao_total": 0.3}, {"produto": "Red fish                    Noruega", "mai": 3.3, "jun": 3.45, "jul": 3.75, "variacao_total": 0.45}, {"produto": "Red fish                    Noruega", "mai": 3.6, "jun": 3.75, "jul": 4.05, "variacao_total": 0.45}, {"produto": "Red fish                    Noruega", "mai": 4.2, "jun": 4.35, "jul": 4.65, "variacao_total": 0.45}, {"produto": "Red fish                    Noruega", "mai": 3.4, "jun": 3.55, "jul": 3.85, "variacao_total": 0.45}, {"produto": "Red fish                    Noruega", "mai": 4.3, "jun": 4.45, "jul": 4.75, "variacao_total": 0.45}, {"produto": "Solha GG aparada               FAO", "mai": 3.7, "jun": 3.6, "jul": 3.6, "variacao_total": -0.1}, {"produto": "Solha GG posta                 FAO", "mai": 3.75, "jun": 3.65, "jul": 3.65, "variacao_total": -0.1}, {"produto": "Solha GG posta                 FAO", "mai": 4.6, "jun": 4.5, "jul": 4.5, "variacao_total": -0.1}, {"produto": "Solha grande aparada           FAO", "mai": 3.4, "jun": 3.5, "jul": 3.5, "variacao_total": 0.1}, {"produto": "Solha grande posta             FAO", "mai": 3.45, "jun": 3.55, "jul": 3.55, "variacao_total": 0.1}, {"produto": "Solha grande posta             FAO", "mai": 4.3, "jun": 4.4, "jul": 4.4, "variacao_total": 0.1}, {"produto": "Tilápia s/v s/escama           Índia", "mai": 2.45, "jun": 2.35, "jul": 2.35, "variacao_total": -0.1}, {"produto": "Tilápia s/v s/escama           Índia", "mai": 2.65, "jun": 2.55, "jul": 2.55, "variacao_total": -0.1}, {"produto": "Tintureira sem pele            Nacional/Espanha                              Caixa", "mai": 2.25, "jun": 2.25, "jul": 2.75, "variacao_total": 0.5}, {"produto": "Tintureira sem pele posta      Nacional/Espanha                              Higienizada Caixa", "mai": 3.15, "jun": 3.15, "jul": 3.95, "variacao_total": 0.8}, {"produto": "Tintureira sem pele posta      Nacional/Espanha                              Saco", "mai": 2.55, "jun": 2.55, "jul": 3.05, "variacao_total": 0.5}, {"produto": "Tintureira sem pele troços     Nacional/Espanha                              Caixa PV", "mai": 2.75, "jun": 2.75, "jul": 3.25, "variacao_total": 0.5}];
+
+function renderEvolucao() {
+  var search = ((document.getElementById('filterEvolucao')||{}).value||'').toLowerCase();
+  var tipo = (document.getElementById('filterEvolucaoTipo')||{}).value||'';
+
+  var filtered = PRICE_EVOLUTION.filter(function(c) {
+    var ms = !search || c.produto.toLowerCase().indexOf(search) >= 0;
+    var mt = !tipo || (tipo==='up' && c.variacao_total > 0) || (tipo==='down' && c.variacao_total < 0);
+    return ms && mt;
+  });
+
+  var info = document.getElementById('evolucaoInfo');
+  if (info) info.textContent = filtered.length + ' produto(s) com alteracao de preco';
+
+  var tbody = document.getElementById('bodyEvolucao');
+  var empty = document.getElementById('emptyEvolucao');
+
+  if (!filtered.length) {
+    if (tbody) tbody.innerHTML = '';
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+
+  function varCell(old_v, new_v) {
+    if (!old_v || !new_v) return '<td style="text-align:center;color:#999">—</td>';
+    var diff = new_v - old_v;
+    var pct = ((diff / old_v) * 100).toFixed(1);
+    if (diff > 0) return '<td style="text-align:center;color:#2e7d32;font-weight:700">▲ +' + diff.toFixed(2) + '€ (+' + pct + '%)</td>';
+    if (diff < 0) return '<td style="text-align:center;color:#c62828;font-weight:700">▼ ' + diff.toFixed(2) + '€ (' + pct + '%)</td>';
+    return '<td style="text-align:center;color:#999">=</td>';
+  }
+
+  function priceCell(v, bg) {
+    if (!v) return '<td style="text-align:center;background:' + bg + ';color:#999">—</td>';
+    return '<td style="text-align:center;background:' + bg + ';font-weight:700">' + v.toFixed(2) + ' €</td>';
+  }
+
+  if (tbody) tbody.innerHTML = filtered.map(function(c) {
+    var totalDiff = c.variacao_total;
+    var totalCell = totalDiff > 0
+      ? '<td style="text-align:center;color:#2e7d32;font-weight:800;font-size:13px">▲ +' + totalDiff.toFixed(2) + '€</td>'
+      : totalDiff < 0
+      ? '<td style="text-align:center;color:#c62828;font-weight:800;font-size:13px">▼ ' + totalDiff.toFixed(2) + '€</td>'
+      : '<td style="text-align:center;color:#999">=</td>';
+
+    return '<tr>' +
+      '<td style="font-weight:600">' + c.produto + '</td>' +
+      priceCell(c.mai, '#f1f8e9') +
+      varCell(c.mai, c.jun) +
+      priceCell(c.jun, '#e3f2fd') +
+      varCell(c.jun, c.jul) +
+      priceCell(c.jul, '#fff3e0') +
+      totalCell +
+    '</tr>';
+  }).join('');
 }
 
 </script>
