@@ -553,10 +553,11 @@ function setSyncStatusGerente(msg, ok) {
 }
 
 async function syncGerente() {
-  setSyncStatusGerente('A sincronizar...');
+  setSyncStatusGerente('Passo 1: encomendas...');
   try {
     // Sync encomendas (critical)
     var encRes = await jsonpGet('getEncomendas');
+    setSyncStatusGerente('Passo 2: clientes...');
     if (Array.isArray(encRes) && encRes.length > 0) {
       DB.encomendas = encRes;
     }
@@ -567,6 +568,7 @@ async function syncGerente() {
         DB.clientes = cliRes;
       }
     } catch(ce) { console.log('Clientes sync skipped:', ce.message); }
+    setSyncStatusGerente('Passo 3: notificacoes...');
     // Sync notifications (optional)
     try {
       var notifRes = await jsonpGet('getNotificacoes&destinatario=gerente');
