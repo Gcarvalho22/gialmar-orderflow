@@ -529,7 +529,7 @@ function jsonpGet(action) {
   return new Promise(function(resolve, reject) {
     var cb = '_cb_' + Date.now() + '_' + Math.floor(Math.random()*9999);
     var s = document.createElement('script');
-    var t = setTimeout(function(){ reject(new Error('Timeout')); cleanup(); }, 12000);
+    var t = setTimeout(function(){ reject(new Error('Timeout')); cleanup(); }, 20000);
     window[cb] = function(data){ resolve(data); cleanup(); };
     s.onerror = function(){ reject(new Error('onerror')); cleanup(); };
     function cleanup(){ clearTimeout(t); delete window[cb]; if(s.parentNode) s.parentNode.removeChild(s); }
@@ -554,28 +554,24 @@ function setSyncStatusGerente(msg, ok) {
 
 async function syncGerente() {
   setSyncStatusGerente('A sincronizar...');
-  console.log('syncGerente called, APPS_SCRIPT_URL=', APPS_SCRIPT_URL);
   try {
-    // Sync encomendas from Google Sheets
+    // Sync encomendas (critical)
     var encRes = await jsonpGet('getEncomendas');
-    console.log('encRes:', Array.isArray(encRes) ? encRes.length + ' encomendas' : encRes);
     if (Array.isArray(encRes) && encRes.length > 0) {
       DB.encomendas = encRes;
     }
-    // Sync clientes from Google Sheets
-    var cliRes = await jsonpGet('getClientes');
-    if (Array.isArray(cliRes) && cliRes.length > 0) {
-      DB.clientes = cliRes;
-    }
-    // Sync notifications (optional - don't fail if this times out)
+    // Sync clientes (optional)
+    try {
+      var cliRes = await jsonpGet('getClientes');
+      if (Array.isArray(cliRes) && cliRes.length > 0) {
+        DB.clientes = cliRes;
+      }
+    } catch(ce) { console.log('Clientes sync skipped:', ce.message); }
+    // Sync notifications (optional)
     try {
       var notifRes = await jsonpGet('getNotificacoes&destinatario=gerente');
-      if (Array.isArray(notifRes)) {
-        DB.notificacoes = notifRes;
-      }
-    } catch(ne) {
-      console.log('Notificacoes sync skipped:', ne.message);
-    }
+      if (Array.isArray(notifRes)) { DB.notificacoes = notifRes; }
+    } catch(ne) { console.log('Notif sync skipped:', ne.message); }
     saveToStorage();
     setSyncStatusGerente('Atualizado ' + new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'}), true);
     updateDashboard();
