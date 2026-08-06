@@ -324,19 +324,19 @@ body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(
   <section class="page" id="page-tabela">
     <div class="page-actions">
       <div class="filter-group">
-        <input type="text" class="filter-input" placeholder="Pesquisar produto..." id="ftSearch" style="min-width:220px"/>
-        <select class="filter-select" id="ftCat" style="max-width:200px"><option value="">Todas as categorias</option></select>
-        <select class="filter-select" id="ftDisp" style="max-width:150px">
+        <input type="text" class="filter-input" placeholder="Pesquisar produto..." id="ftSearch" oninput="ftPage=1;ftRender()" style="min-width:220px"/>
+        <select class="filter-select" id="ftCat" onchange="ftPage=1;ftRender()" style="max-width:200px"><option value="">Todas as categorias</option></select>
+        <select class="filter-select" id="ftDisp" onchange="ftPage=1;ftRender()" style="max-width:150px">
           <option value="">Todos</option><option value="1">Com preco</option><option value="0">Sem preco</option>
         </select>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-secondary btn-sm" id="ftOverlookBtn"><i class="fa-solid fa-eye"></i> Overlook</button>
-        <button class="btn btn-secondary btn-sm" id="ftEditBtn"><i class="fa-solid fa-pen"></i> Editar</button>
-        <button class="btn btn-secondary btn-sm" id="ftHistBtn"><i class="fa-solid fa-clock-rotate-left"></i> Historico</button>
-        <button class="btn btn-outline btn-sm" id="ftResetBtn" title="Repor originais"><i class="fa-solid fa-rotate-left"></i></button>
-        <button class="btn btn-primary btn-sm" id="ftAddBtn"><i class="fa-solid fa-plus"></i> Adicionar</button>
-        <button class="btn btn-sm" style="background:linear-gradient(135deg,#546e7a,#37474f);color:#fff" id="ftPrintBtn"><i class="fa-solid fa-print"></i> PDF</button>
+        <button class="btn btn-secondary btn-sm" id="ftOverlookBtn" onclick="ftOverlook()"><i class="fa-solid fa-eye"></i> Overlook</button>
+        <button class="btn btn-secondary btn-sm" id="ftEditBtn" onclick="ftToggleEdit()"><i class="fa-solid fa-pen"></i> Editar</button>
+        <button class="btn btn-secondary btn-sm" id="ftHistBtn" onclick="ftHistAll()"><i class="fa-solid fa-clock-rotate-left"></i> Historico</button>
+        <button class="btn btn-outline btn-sm" id="ftResetBtn" onclick="ftReset()" title="Repor originais"><i class="fa-solid fa-rotate-left"></i></button>
+        <button class="btn btn-primary btn-sm" id="ftAddBtn" onclick="ftAddProduct()"><i class="fa-solid fa-plus"></i> Adicionar</button>
+        <button class="btn btn-sm" style="background:linear-gradient(135deg,#546e7a,#37474f);color:#fff" id="ftPrintBtn" onclick="ftPrint()"><i class="fa-solid fa-print"></i> PDF</button>
       </div>
     </div>
     <div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px 16px;margin-bottom:12px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
@@ -387,7 +387,7 @@ body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(
         <div style="flex:1"><label style="font-size:11px;font-weight:700;color:#4a6570;text-transform:uppercase;display:block;margin-bottom:4px">Preco Palete</label><input type="number" class="input-text" id="addProdPp" step="0.01" min="0"/></div>
       </div>
     </div>
-    <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('modalAddProduct')">Cancelar</button><button class="btn btn-primary" id="ftSaveProdBtn"><i class="fa-solid fa-floppy-disk"></i> Guardar</button></div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('modalAddProduct')">Cancelar</button><button class="btn btn-primary" id="ftSaveProdBtn" onclick="ftSaveProduct()"><i class="fa-solid fa-floppy-disk"></i> Guardar</button></div>
   </div>
 </div>
 <div class="toast-container" id="toastContainer"></div>
