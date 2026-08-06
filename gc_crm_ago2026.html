@@ -752,7 +752,8 @@ function renderPagination(containerId, currentPage, totalPages, onPageClick) {
 }
 
 function statusLabel(s){ return {ativo:'Ativo',em_estudo:'Em Estudo',por_validar:'Por Validar',inativo:'Inativo'}[s]||s; }
-function closeModal(){ document.getElementById('modalDetalhe').classList.remove('open'); }
+function openModal(id){ var el=document.getElementById(id); if(el) el.classList.add('open'); }
+function closeModal(id){ var el=document.getElementById(id||'modalDetalhe'); if(el) el.classList.remove('open'); }
 document.getElementById('modalDetalhe').addEventListener('click', function(e){ if(e.target===this) this.classList.remove('open'); });
 function showToast(msg,type) {
   type=type||'info';
@@ -996,7 +997,7 @@ function ftOverlook(){
   document.getElementById('modalDetalheTitle').textContent='Overlook EN/PT — '+uniq.length+' produtos';
   document.getElementById('modalDetalheBody').innerHTML='<div style="margin-bottom:8px;font-size:12px;color:#999">Laranja = nome EN igual ao PT</div><table class="data-table" style="font-size:12px"><thead><tr><th>#</th><th>EN</th><th>PT</th><th>Preco</th></tr></thead><tbody>'+rows+'</tbody></table>';
   document.getElementById('modalFooter').innerHTML='<button class="btn btn-outline" onclick="closeMD()">Fechar</button>';
-  openModal('modalDetalhe');
+  var _m=document.getElementById('modalDetalhe');if(_m)_m.classList.add('open');
 }
 
 function ftHistAll(){
@@ -1023,7 +1024,7 @@ function ftHistAll(){
     '<div style="margin-bottom:8px;font-size:12px;color:#666">Azul = preco atual</div><table class="data-table" style="font-size:12px"><thead><tr><th>Data</th><th>Produto</th><th>Campo</th><th>Anterior</th><th>Novo</th><th>Atual</th></tr></thead><tbody>'+rows+'</tbody></table>':
     '<div style="text-align:center;padding:30px;color:#999">Sem historico ainda</div>';
   document.getElementById('modalFooter').innerHTML='<button class="btn btn-outline" onclick="closeMD()">Fechar</button>'+(all.length?'<button class="btn btn-danger btn-sm" onclick="ftClearHist()"><i class="fa-solid fa-trash"></i> Limpar</button>':'');
-  openModal('modalDetalhe');
+  var _m=document.getElementById('modalDetalhe');if(_m)_m.classList.add('open');
 }
 
 function ftHistOne(id){
@@ -1044,7 +1045,7 @@ function ftHistOne(id){
     '<table class="data-table" style="font-size:12px"><thead><tr><th>Data</th><th>Campo</th><th>Anterior</th><th>Novo</th><th>Atual</th></tr></thead><tbody>'+rows+'</tbody></table>':
     '<div style="text-align:center;padding:20px;color:#999">Sem historico</div>';
   document.getElementById('modalFooter').innerHTML='<button class="btn btn-outline" onclick="closeMD()">Fechar</button>';
-  openModal('modalDetalhe');
+  var _m=document.getElementById('modalDetalhe');if(_m)_m.classList.add('open');
 }
 
 function ftClearHist(){if(!confirm('Limpar historico?'))return;ftHist={};localStorage.removeItem('fth');showToast('Limpo!','warning');closeMD();}
@@ -1054,7 +1055,7 @@ function ftAddProduct(){
   document.getElementById('addProdId').value='';
   ['addProdEN','addProdPT','addProdOrig','addProdCal','addProdEmb','addProdPr','addProdPp'].forEach(function(id){document.getElementById(id).value='';});
   document.getElementById('addProdUn').value='KG';
-  openModal('modalAddProduct');
+  var _m=document.getElementById('modalAddProduct');if(_m)_m.classList.add('open');
 }
 
 function ftSaveProduct(){
