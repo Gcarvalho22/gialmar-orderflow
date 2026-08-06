@@ -823,6 +823,7 @@ function ftLoad() {
 }
 
 function ftInit() {
+  console.log('ftInit called, FT length=', typeof FT !== 'undefined' ? FT.length : 'undefined');
   ftPage = 1;
   ftRender();
   // Attach button events
@@ -865,6 +866,7 @@ function ftGetCols() {
 }
 
 function ftRender() {
+  console.log('ftRender called, FT=', typeof FT !== 'undefined' ? FT.length : 'undefined', '_tEdits=', Object.keys(_tEdits||{}).length);
   var data = ftGetData();
   var cols = ftGetCols();
   var search = ((document.getElementById('ftSearch')||{}).value||'').toLowerCase();
